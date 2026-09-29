@@ -1,0 +1,370 @@
+project_name: "Hybrid AI–NWP Multi-Model Forecast Blending System"
+version: "0.6.0"
+environment: "research"
+
+# Execution data mode: 'synthetic' (default), 'historical', or 'real'
+data:
+  mode: "synthetic"
+  real_forecasts_path: "data/forecasts/real_forecasts.parquet"
+  real_observations_path: "data/processed/real_observations.parquet"
+  verification_dataset_path: "data/processed/verification_dataset.parquet"
+
+# Pipeline execution configuration (Phase 6)
+pipeline:
+  mode: "synthetic"           # "synthetic", "historical", "real"
+  save_provenance: true
+  quality_control_strict: true
+  enable_temporal_memory: true
+  enable_extreme_calibration: true
+
+# Target forecast meteorological variables
+variables:
+  temperature:
+    standard_name: "2m_air_temperature"
+    unit: "celsius"
+    min_physical_bound: -60.0
+    max_physical_bound: 65.0
+  rainfall:
+    standard_name: "total_precipitation_accumulation"
+    unit: "mm"
+    min_physical_bound: 0.0
+    max_physical_bound: 600.0
+  wind_speed:
+    standard_name: "10m_wind_speed"
+    unit: "m/s"
+    min_physical_bound: 0.0
+    max_physical_bound: 120.0
+
+# Target normalized internal units
+units:
+  temperature: "celsius"
+  rainfall: "mm"
+  wind_speed: "m/s"
+
+# Variable name alias mappings across external data providers
+variable_mappings:
+  temperature:
+    - "temperature"
+    - "t2m"
+    - "t2m_degc"
+    - "t2m_k"
+    - "2m_temperature"
+    - "temp"
+    - "tmp"
+    - "t_2m"
+    - "air_temperature"
+    - "t_surface"
+  rainfall:
+    - "rainfall"
+    - "rain"
+    - "tp"
+    - "precipitation"
+    - "precip"
+    - "total_precipitation"
+    - "total_precip"
+    - "apcp"
+    - "prate"
+    - "rain_mm"
+    - "accumulated_precipitation"
+  wind_speed:
+    - "wind_speed"
+    - "wind"
+    - "ws10"
+    - "10m_wind"
+    - "10si"
+    - "si10"
+    - "wspd"
+    - "windspeed"
+    - "speed_10m"
+    - "wind_10m"
+
+# Spatial alignment configuration
+spatial_alignment:
+  method: "nearest"
+  max_distance_km: 50.0
+
+# Temporal alignment configuration
+temporal_alignment:
+  tolerance_minutes: 30
+
+# Lead time bin intervals (hours)
+# Boundary assignment: short: [0, 24], medium: (24, 72], extended: (72, 120], long_range: (120, 1000]
+lead_time_bins:
+  short: [0, 24]
+  medium: [24, 72]
+  extended: [72, 120]
+  long_range: [120, 1000]
+
+# Climatological season definitions (month numbers)
+seasons:
+  winter: [12, 1, 2]
+  spring: [3, 4, 5]
+  summer: [6, 7, 8]
+  autumn: [9, 10, 11]
+
+# Forecast lead times in hours
+lead_times_hours:
+  - 6
+  - 12
+  - 24
+  - 48
+  - 72
+  - 96
+  - 120
+
+# Geographic evaluation domains
+regions:
+  coastal:
+    lat_min: 10.0
+    lat_max: 20.0
+    lon_min: 70.0
+    lon_max: 75.0
+    description: "Maritime and coastal transition zone"
+  plains:
+    lat_min: 20.0
+    lat_max: 30.0
+    lon_min: 75.0
+    lon_max: 85.0
+    description: "Continental inland river plain basin"
+  mountain:
+    lat_min: 30.0
+    lat_max: 36.0
+    lon_min: 74.0
+    lon_max: 80.0
+    description: "High-altitude complex orography domain"
+
+# Forecast models incorporated in blending
+models:
+  nwp_model_a:
+    type: "nwp"
+    resolution_km: 12.0
+    update_frequency_hours: 6
+    description: "High-resolution physics NWP with strong short-range boundary skill"
+  nwp_model_b:
+    type: "nwp"
+    resolution_km: 25.0
+    update_frequency_hours: 12
+    description: "Global medium-range NWP with stable long-range error growth"
+  ai_model_c:
+    type: "ai"
+    resolution_km: 25.0
+    update_frequency_hours: 6
+    description: "Data-driven neural weather model with strong non-linear precipitation skill"
+
+# Statistical evaluation metrics & grouping criteria
+evaluation:
+  metrics:
+    - "mae"
+    - "rmse"
+    - "bias"
+    - "correlation"
+  grouping_keys:
+    - "variable"
+    - "lead_time"
+    - "region"
+  default_baseline: "equal_weight_blend"
+
+# Adaptive Skill Estimation Configuration (Phase 3)
+skill_estimation:
+  method: "inverse_variance"  # "inverse_variance" or "inverse_mae"
+  mode: "rolling"             # "rolling" or "expanding"
+  window_size: 30             # Historical time steps / observations in window
+  minimum_samples: 20         # Minimum sample threshold for scoped skill before fallback
+  epsilon: 0.000001           # Stability parameter avoiding division by zero
+  weight_smoothing: 0.10      # Alpha regularization factor toward equal weight (1/N)
+  fallback_hierarchy:
+    - "model_variable_lead_region"
+    - "model_variable_lead"
+    - "model_variable"
+    - "model"
+
+# Adaptive Regression Blender Configuration (Phase 3)
+regression:
+  enabled: true
+  model: "ridge"
+  alpha: 1.0                  # L2 regularization strength
+  fit_intercept: true         # Fit separate constant bias term
+  constrained_weights: true   # Non-negative weights summing to 1
+
+# Weather Regime Detection & Classification (Phase 4)
+weather_regime:
+  method: "rule_based"        # "rule_based" or "clustering"
+  default_regime: "stable"
+  smoothing_window: 1         # Temporal smoothing steps for regime stability
+  clustering:
+    n_clusters: 4             # Number of KMeans clusters (3, 4, 5, 6)
+    random_state: 42
+    features:
+      - "temperature"
+      - "rainfall"
+      - "wind_speed"
+      - "relative_humidity"
+      - "surface_pressure"
+      - "diurnal_sin"
+      - "diurnal_cos"
+      - "seasonal_sin"
+      - "seasonal_cos"
+  thresholds:
+    heavy_rain_mm: 25.0
+    convective_rain_mm: 10.0
+    high_wind_mps: 12.0
+    hot_temperature_c: 35.0
+    cold_temperature_c: 5.0
+    priority_order:
+      - "heavy_rain"
+      - "convective"
+      - "high_wind"
+      - "hot_extreme"
+      - "cold_extreme"
+      - "stable"
+
+# Neural Gating Network Configuration (Phase 4)
+neural_gating:
+  enabled: true
+  hidden_sizes:
+    - 64
+    - 32
+  dropout: 0.10
+  learning_rate: 0.001
+  batch_size: 64
+  epochs: 100
+  early_stopping_patience: 10
+  weight_decay: 0.0001
+  random_seed: 42
+  use_residual_head: false    # False = pure forecast blending (w >= 0, sum w = 1)
+
+# 2D Spatial Grid Alignment & Processing (Phase 5)
+spatial:
+  enabled: false
+  target_resolution: 0.25
+  interpolation: "bilinear"    # "nearest" or "bilinear"
+  max_missing_fraction: 0.20
+  lat_min: 10.0
+  lat_max: 36.0
+  lon_min: 70.0
+  lon_max: 86.0
+
+# Spatial CNN Encoder & Gating Configuration (Phase 5)
+cnn:
+  enabled: false
+  channels:
+    - 32
+    - 32
+    - 64
+  kernel_size: 3
+  dropout: 0.10
+  learning_rate: 0.001
+  epochs: 50
+  batch_size: 16
+  early_stopping_patience: 8
+  random_seed: 42
+
+# Spatio-Temporal Modeling & Recurrent Memory Configuration (Phase 6)
+spatiotemporal:
+  enabled: true
+  sequence_length: 4          # Number of historical timesteps (t-3, t-2, t-1, t)
+  hidden_dim: 32
+  recurrent_type: "gru"       # "gru", "lstm"
+  dropout: 0.10
+  learning_rate: 0.001
+  epochs: 40
+  batch_size: 8
+  early_stopping_patience: 6
+  random_seed: 42
+
+# Probabilistic Forecast Configuration (Phase 5)
+probabilistic:
+  enabled: true
+  quantiles:
+    - 0.10
+    - 0.25
+    - 0.50
+    - 0.75
+    - 0.90
+  distribution_type: "gaussian" # "gaussian", "ensemble", "empirical"
+
+# Ensemble Model Output Statistics (EMOS) Configuration (Phase 5)
+emos:
+  enabled: false
+  fit_method: "crps"          # "crps", "nll", or "least_squares"
+  min_spread_epsilon: 0.0001
+
+# Advanced Extreme Weather Calibration Configuration (Phase 6)
+extreme_calibration:
+  enabled: true
+  method: "zero_inflated_gamma" # "gamma_emos", "zero_inflated_gamma", "gev"
+  censoring_threshold: 0.1     # mm precipitation trace threshold
+  min_positive_samples: 20
+  enable_gev_tail: true
+  gev_min_samples: 50
+
+# Probability Calibration Configuration (Phase 5)
+calibration:
+  enabled: false
+  bins: 10
+  min_samples_per_bin: 5
+
+# Extreme weather event alert thresholds
+extreme_event_thresholds:
+  rainfall:
+    moderate: 15.6     # mm / 24h
+    heavy: 35.5        # mm / 24h
+    very_heavy: 64.5   # mm / 24h
+    extreme: 124.5     # mm / 24h
+  heatwave:
+    mild: 40.0         # degrees Celsius
+    severe: 45.0       # degrees Celsius
+  wind:
+    strong_breeze: 10.8 # m/s (~6 Beaufort)
+    gale: 17.2          # m/s (~8 Beaufort)
+    storm: 24.5         # m/s (~10 Beaufort)
+
+# Phase 5 & 6 Extreme Event Evaluation Thresholds for Probability Maps
+extremes:
+  rainfall_thresholds:
+    - 10.0
+    - 25.0
+    - 50.0
+    - 100.0
+  wind_thresholds:
+    - 10.0
+    - 15.0
+    - 20.0
+    - 25.0
+  temperature_thresholds:
+    - 0.0
+    - 5.0
+    - 35.0
+    - 40.0
+  hot_temperature_thresholds:
+    - 35.0
+    - 38.0
+    - 40.0
+  cold_temperature_thresholds:
+    - 0.0
+    - 5.0
+
+# Storage & filesystem paths
+paths:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  forecasts_data_dir: "data/forecasts"
+  synthetic_observations_file: "data/processed/synthetic_observations.parquet"
+  synthetic_forecasts_file: "data/forecasts/synthetic_forecasts.parquet"
+  synthetic_spatial_forecasts_file: "data/forecasts/synthetic_spatial_forecasts.nc"
+  synthetic_spatial_observations_file: "data/processed/synthetic_spatial_observations.nc"
+  verification_dataset_file: "data/processed/verification_dataset.parquet"
+  error_db_file: "data/processed/historical_error_db.parquet"
+  evaluation_results_dir: "data/processed/evaluation"
+  reports_dir: "reports"
+  provenance_file: "reports/data_provenance.json"
+  quality_report_file: "reports/data_quality.json"
+
+# Synthetic test dataset generator parameters
+synthetic_data:
+  seed: 42
+  start_date: "2026-01-01"
+  end_date: "2026-01-30"
+  time_step_hours: 6
+  stations_per_region: 3
+  spatial_grid_shape: [16, 16]
