@@ -166,5 +166,33 @@
     "download_timestamp": "2026-09-29T17:33:14.095688+00:00",
     "license_info": "National Weather Service Open Station Data",
     "metadata": {}
+  },
+  {
+    "source": "TestNWP",
+    "dataset_name": "TestNWP_rainfall_forecast",
+    "provider": "TestNWP",
+    "variable": "rainfall",
+    "units": "mm",
+    "spatial_resolution": "0.25 deg",
+    "temporal_resolution": "6h",
+    "initialization_time": null,
+    "valid_time": null,
+    "download_timestamp": "2026-09-29T17:54:18.574535+00:00",
+    "license_info": "Open Meteorological Data License",
+    "metadata": {}
+  },
+  {
+    "source": "IMD_AWS_Network",
+    "dataset_name": "IMD_AWS_Network_wind_speed_obs",
+    "provider": "IMD_AWS_Network",
+    "variable": "wind_speed",
+    "units": "m/s",
+    "spatial_resolution": "Point Stations",
+    "temporal_resolution": "Hourly/Synoptic",
+    "initialization_time": null,
+    "valid_time": null,
+    "download_timestamp": "2026-09-29T17:54:18.594841+00:00",
+    "license_info": "National Weather Service Open Station Data",
+    "metadata": {}
   }
 ]

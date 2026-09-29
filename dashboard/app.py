@@ -895,7 +895,3 @@ def main():
             file_name="spatial_model_weights_map.csv",
             mime="text/csv",
         )
-
-
-if __name__ == "__main__":
-    main()

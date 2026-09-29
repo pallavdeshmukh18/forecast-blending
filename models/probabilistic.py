@@ -24,7 +24,7 @@ class ProbabilisticForecast:
         self,
         mean: np.ndarray,
         std: np.ndarray,
-        quantiles: Optional[Dict[float, np.ndarray]] = None,
+        quantiles: Optional[Union[Dict[float, np.ndarray], List[float], Tuple[float, ...]]] = None,
         distribution_type: str = "gaussian",
         metadata: Optional[Dict[str, Any]] = None,
     ):
@@ -34,7 +34,13 @@ class ProbabilisticForecast:
         self.metadata = metadata or {}
 
         if quantiles is not None:
-            self.quantiles = {float(q): np.asarray(v, dtype=np.float32) for q, v in quantiles.items()}
+            if isinstance(quantiles, dict):
+                self.quantiles = {float(q): np.asarray(v, dtype=np.float32) for q, v in quantiles.items()}
+            else:
+                self.quantiles = {
+                    float(q): (self.mean + float(stats.norm.ppf(float(q))) * self.std).astype(np.float32)
+                    for q in quantiles
+                }
         else:
             # Default parametric Gaussian quantiles
             default_qs = [0.10, 0.25, 0.50, 0.75, 0.90]
@@ -49,16 +55,8 @@ class ProbabilisticForecast:
 
     def cdf(self, threshold: float) -> np.ndarray:
         """Compute P(Y <= threshold)."""
-        if self.distribution_type == "gaussian":
-            z = (threshold - self.mean) / self.std
-            return stats.norm.cdf(z).astype(np.float32)
-        elif 0.50 in self.quantiles:
-            # Simple approximation using normal fit
-            z = (threshold - self.mean) / self.std
-            return stats.norm.cdf(z).astype(np.float32)
-        else:
-            z = (threshold - self.mean) / self.std
-            return stats.norm.cdf(z).astype(np.float32)
+        z = (threshold - self.mean) / self.std
+        return np.asarray(stats.norm.cdf(z), dtype=np.float32)
 
     def prob_exceeds(self, threshold: float) -> np.ndarray:
         """Compute P(Y >= threshold) = 1 - CDF(threshold)."""

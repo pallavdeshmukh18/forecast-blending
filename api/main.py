@@ -83,6 +83,8 @@ from evaluation.calibration import (
     compute_reliability_curve,
     evaluate_event_calibration,
 )
+from data.provenance import get_provenance_tracker
+from pipeline.forecast_pipeline import run_forecast_pipeline
 
 app = FastAPI(
     title="Hybrid AI-NWP Multi-Model Forecast Blending System API",
@@ -1093,13 +1095,19 @@ def api_get_weights(
     lead_time: int = Query(24, description="Lead time in hours"),
 ):
     """Returns active model weights computed by the blending system."""
-    blender = _get_fitted_blender("regime_inverse_variance")
-    weights = blender.get_weights(variable=variable, lead_time=lead_time)
+    cfg = get_config()
+    res = run_forecast_pipeline(
+        mode="synthetic",
+        variable=variable,
+        lead_time=lead_time,
+        blender_method="regime_blender",
+        config=cfg,
+    )
     return {
         "variable": variable,
         "lead_time": lead_time,
-        "blender": "regime_inverse_variance",
-        "weights": weights,
+        "blender": "regime_blender",
+        "weights": res.weights,
     }
 
 
