@@ -1,0 +1,21 @@
+# Extreme Weather Event Calibration Experiment Configuration
+experiment_name: "extreme_weather_calibration"
+description: "Evaluates Gamma EMOS, Zero-Inflated Gamma EMOS, and GEV tail models for precipitation extremes"
+seed: 42
+data_mode: "synthetic"
+
+calibration:
+  methods:
+    - "gamma_emos"
+    - "zero_inflated_gamma"
+    - "gev_tail"
+  censoring_threshold: 0.1
+  min_positive_samples: 20
+  gev_min_samples: 50
+
+thresholds:
+  rainfall: [10.0, 25.0, 50.0, 100.0]
+  wind: [10.0, 15.0, 20.0, 25.0]
+  temperature:
+    hot: [35.0, 38.0, 40.0]
+    cold: [0.0, 5.0]

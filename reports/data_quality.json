@@ -1,0 +1,24 @@
+{
+  "total_records": 2,
+  "valid_records": 2,
+  "missing_records": 0,
+  "out_of_range_records": 0,
+  "invalid_coord_records": 0,
+  "duplicate_records": 0,
+  "spatial_mismatch_records": 0,
+  "temporal_mismatch_records": 0,
+  "temporal_gaps_detected": 0,
+  "spatial_gaps_detected": 0,
+  "records_by_model": {
+    "m1": 1,
+    "m2": 1
+  },
+  "records_by_variable": {
+    "rainfall": 2
+  },
+  "records_by_lead_time": {
+    "24": 2
+  },
+  "issues_summary": [],
+  "rejection_reasons": {}
+}

@@ -1,0 +1,11 @@
+# Probabilistic Forecasting Experiment Configuration
+experiment_name: "probabilistic_postprocessing"
+description: "Evaluates Gaussian EMOS and empirical ensemble quantiles for CRPS and Brier score"
+seed: 42
+data_mode: "synthetic"
+
+probabilistic:
+  quantiles: [0.10, 0.25, 0.50, 0.75, 0.90]
+  distribution_type: "gaussian"
+  emos_fit_method: "crps"
+  min_spread_epsilon: 0.0001

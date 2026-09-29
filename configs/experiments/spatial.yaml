@@ -1,0 +1,18 @@
+# Spatial CNN Blending Experiment Configuration
+experiment_name: "spatial_cnn_blending"
+description: "Evaluates 2D spatial CNN gating vs spatial inverse variance and regime blending"
+seed: 42
+data_mode: "synthetic"
+
+models:
+  - "spatial_inverse_variance"
+  - "spatial_cnn"
+  - "regime_blender"
+
+spatial:
+  grid_shape: [16, 16]
+  channels: [32, 32, 64]
+  kernel_size: 3
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.001

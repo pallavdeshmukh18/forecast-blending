@@ -1,0 +1,22 @@
+# Baseline Pointwise Blending Experiment Configuration
+experiment_name: "baseline_blending"
+description: "Evaluates equal weighting, inverse variance, and ridge regression baselines"
+seed: 42
+data_mode: "synthetic"
+
+models:
+  - "equal_weight"
+  - "inverse_variance"
+  - "ridge"
+
+variables:
+  - "temperature"
+  - "rainfall"
+  - "wind_speed"
+
+evaluation:
+  metrics: ["mae", "rmse", "bias", "correlation"]
+  split:
+    train_fraction: 0.70
+    val_fraction: 0.15
+    test_fraction: 0.15

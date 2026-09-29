@@ -1,0 +1,16 @@
+config_version: 0.6.0
+dataset_version: phase6-validation-v1
+model_version: 0.6.0
+parameters:
+  models_benchmarked: 14
+seed: 42
+system_info:
+  numpy_version: 2.4.4
+  os: Windows-11-10.0.26200-SP0
+  python_version: 3.13.7
+  torch_version: !!python/object/new:torch.torch_version.TorchVersion
+  - 2.11.0+cpu
+test_period: 2026-01-26 to 2026-01-30
+timestamp_utc: '2026-09-29T17:28:17.132603+00:00'
+training_period: 2026-01-01 to 2026-01-20
+validation_period: 2026-01-21 to 2026-01-25

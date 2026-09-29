@@ -1,0 +1,35 @@
+# Phase 6 Final Full Multi-Dimensional Validation Experiment Configuration
+experiment_name: "phase6_final_validation"
+description: "Comprehensive 14-model benchmark across temporal, regional, regime, and lead-time holdouts"
+seed: 42
+data_mode: "synthetic"
+
+splits:
+  temporal:
+    train: "2026-01-01 to 2026-01-20"
+    val: "2026-01-21 to 2026-01-25"
+    test: "2026-01-26 to 2026-01-30"
+  regional_holdout:
+    train_regions: ["coastal", "plains"]
+    test_region: "mountain"
+
+bootstrap:
+  n_bootstraps: 1000
+  block_size: 4
+  confidence_level: 0.95
+
+benchmarked_models:
+  - "nwp_model_a"
+  - "nwp_model_b"
+  - "ai_model_c"
+  - "equal_weight"
+  - "inverse_variance"
+  - "ridge"
+  - "regime_blender"
+  - "neural_gating"
+  - "spatial_inverse_variance"
+  - "spatial_cnn"
+  - "gaussian_emos"
+  - "spatiotemporal_cnn"
+  - "gamma_emos"
+  - "zero_inflated_gamma"
