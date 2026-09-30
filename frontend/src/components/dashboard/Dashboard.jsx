@@ -12,7 +12,8 @@ import {
   Clock,
   Server,
   Layers,
-  ArrowLeft
+  ArrowLeft,
+  Map
 } from 'lucide-react';
 import Overview from './Overview';
 import ForecastExplorer from './forecast/ForecastExplorer';
@@ -23,9 +24,13 @@ import Uncertainty from './uncertainty/Uncertainty';
 import ForecastChanges from './changes/ForecastChanges';
 import ForecastRuns from './runs/ForecastRuns';
 import SystemStatus from './status/SystemStatus';
+import WeatherMapWorkspace from './WeatherMapWorkspace';
 
 export default function Dashboard({ user, onLogout }) {
   const [selectedTab, setSelectedTab] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('weather-map')) {
+      return 'weather-map';
+    }
     if (typeof window !== 'undefined' && window.location.hash.includes('overview')) {
       return 'overview';
     }
@@ -50,10 +55,11 @@ export default function Dashboard({ user, onLogout }) {
     if (typeof window !== 'undefined' && window.location.hash.includes('status')) {
       return 'status';
     }
-    return 'overview';
+    return 'weather-map';
   });
 
   const mainNavItems = [
+    { id: 'weather-map', label: 'Weather Map', icon: Map, disabled: false },
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, disabled: false },
     { id: 'explorer', label: 'Forecast Explorer', icon: Compass, disabled: false },
     { id: 'intelligence', label: 'Model Intelligence', icon: Cpu, disabled: false },
@@ -143,8 +149,12 @@ export default function Dashboard({ user, onLogout }) {
         </aside>
 
         {/* Main Dashboard Screen */}
-        <main className="dashboard-main-content">
-          {selectedTab === 'overview' ? (
+        <main className={`dashboard-main-content ${selectedTab === 'weather-map' ? 'map-mode' : ''}`}>
+          {selectedTab === 'weather-map' ? (
+            <div className="dashboard-map-shell">
+              <WeatherMapWorkspace />
+            </div>
+          ) : selectedTab === 'overview' ? (
             <Overview onNavigateTab={setSelectedTab} />
           ) : selectedTab === 'explorer' ? (
             <ForecastExplorer />

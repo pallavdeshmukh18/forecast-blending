@@ -1774,6 +1774,21 @@ body {
   overflow-y: auto;
 }
 
+.dashboard-main-content.map-mode {
+  position: relative;
+  height: calc(100vh - 68px);
+  min-height: 620px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dashboard-map-shell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #17354b;
+}
+
 /* ========================================================
    OVERVIEW PAGE LAYOUT & CARDS (NEKA AESTHETICS)
    ======================================================== */
@@ -9146,4 +9161,3 @@ body {
   opacity: 0.88;
   transition: opacity 0.2s ease;
 }
-

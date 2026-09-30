@@ -1,0 +1,68 @@
+/* MapLibre owns its imperative lifecycle; refs and callbacks are intentionally stable. */
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useMemo, useRef, useState } from 'react'
+import * as maplibregl from 'maplibre-gl'
+import { AlertTriangle, BarChart3, ChevronDown, ChevronLeft, ChevronRight, CloudRain, Crosshair, Layers3, LocateFixed, Menu, Minus, Pause, Play, Plus, Search, Settings2, Sparkles, ThermometerSun, Upload, Wind, X } from 'lucide-react'
+import { alerts, cities, cityLayerValue, modelWeights, times, variables, weatherGeoJSON } from '../../data'
+import { forecastToGeoJSON, getHealth, runForecast } from '../../weatherMapApi'
+
+const baseStyle={version:8,glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors',maxzoom:19}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-fade-duration':0,'raster-saturation':-.2,'raster-contrast':0,'raster-brightness-min':.18,'raster-brightness-max':.9,'raster-opacity':1}}]}
+const layerIcons={rain:CloudRain,temp:ThermometerSun,wind:Wind,uncertainty:BarChart3,weights:Layers3,extremes:AlertTriangle,change:Sparkles}
+const layerOrder=['wind','rain','temp','uncertainty','weights','extremes','change']
+
+function heatColors(v){return['interpolate',['linear'],['heatmap-density'],0,'rgba(0,0,0,0)',.08,'rgba(0,0,0,0)',.22,v.colors[0],.43,v.colors[1],.63,v.colors[2],.82,v.colors[3],1,v.colors[4]]}
+
+function WeatherMap({layer,frame,selected,setSelected,mapRef,forecastGeoJSON,overlayOpacity}){
+  const node=useRef(null)
+  useEffect(()=>{
+    const v=variables[layer]
+    const map=new maplibregl.Map({container:node.current,style:baseStyle,center:[78.6,21.2],zoom:4.25,pitch:0,bearing:0,minZoom:3,maxZoom:11,attributionControl:false,fadeDuration:0,refreshExpiredTiles:false})
+    mapRef.current=map
+    map.on('load',()=>{
+      map.addSource('field',{type:'geojson',data:forecastGeoJSON})
+      map.addLayer({id:'field',type:'heatmap',source:'field',maxzoom:10,paint:{'heatmap-weight':['interpolate',['linear'],['get','value'],v.stops[0],.08,v.stops.at(-1),.9],'heatmap-intensity':['interpolate',['linear'],['zoom'],3,.5,7,.82],'heatmap-radius':['interpolate',['linear'],['zoom'],3,23,8,46],'heatmap-opacity':overlayOpacity,'heatmap-color':heatColors(v)}})
+      map.addSource('city-data',{type:'geojson',data:{type:'FeatureCollection',features:cities.map(c=>({type:'Feature',properties:{...c},geometry:{type:'Point',coordinates:c.coordinates}}))}})
+      map.addLayer({id:'cities',type:'circle',source:'city-data',paint:{'circle-radius':2.5,'circle-color':'#eefcff','circle-stroke-color':'rgba(10,34,54,.8)','circle-stroke-width':1}})
+      map.addLayer({id:'labels',type:'symbol',source:'city-data',layout:{'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1.05],'text-anchor':'top','text-allow-overlap':false},paint:{'text-color':'#fff','text-halo-color':'rgba(12,31,48,.92)','text-halo-width':1.7}})
+      map.addSource('alerts',{type:'geojson',data:{type:'FeatureCollection',features:alerts.map(a=>({type:'Feature',properties:{...a},geometry:{type:'Point',coordinates:a.coordinates}}))}})
+      map.addLayer({id:'alerts',type:'circle',source:'alerts',paint:{'circle-radius':10,'circle-color':['match',['get','severity'],'high','#e84b3c','moderate','#efa23c','#e5c345'],'circle-stroke-color':'#fff','circle-stroke-width':2,'circle-opacity':.88}})
+      map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right')
+    })
+    map.on('click','cities',e=>{const city=cities.find(c=>c.name===e.features?.[0]?.properties?.name);if(city)setSelected(city)})
+    map.on('click','alerts',e=>{const city=cities.find(c=>c.name===e.features?.[0]?.properties?.city);if(city)setSelected(city)})
+    for(const id of ['cities','alerts']){map.on('mouseenter',id,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',id,()=>map.getCanvas().style.cursor='')}
+    return()=>map.remove()
+  },[])
+  useEffect(()=>{const map=mapRef.current;if(!map?.getSource('field'))return;const v=variables[layer];map.getSource('field').setData(forecastGeoJSON);map.setPaintProperty('field','heatmap-color',heatColors(v));map.setPaintProperty('field','heatmap-weight',['interpolate',['linear'],['get','value'],v.stops[0],.08,v.stops.at(-1),.96])},[layer,frame,forecastGeoJSON])
+  useEffect(()=>{const map=mapRef.current;if(map?.getLayer('field'))map.setPaintProperty('field','heatmap-opacity',overlayOpacity)},[overlayOpacity])
+  useEffect(()=>{if(selected)mapRef.current?.flyTo({center:selected.coordinates,zoom:6,duration:900})},[selected])
+  return <div className="weather-map" ref={node}/>
+}
+
+function ParticleCanvas({enabled,layer}){
+  const canvasRef=useRef(null)
+  useEffect(()=>{const canvas=canvasRef.current,ctx=canvas.getContext('2d');let raf,particles=[];const reset=()=>{const dpr=Math.min(devicePixelRatio,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';ctx.setTransform(dpr,0,0,dpr,0,0);particles=Array.from({length:Math.min(520,Math.round(innerWidth*.36))},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,age:Math.random()*100,max:70+Math.random()*90,speed:.45+Math.random()*1.2}))};const draw=()=>{ctx.clearRect(0,0,innerWidth,innerHeight);if(enabled){ctx.lineWidth=.75;ctx.strokeStyle=layer==='wind'?'rgba(238,252,255,.62)':'rgba(235,249,255,.3)';for(const p of particles){const angle=Math.sin(p.y*.006)+Math.cos(p.x*.004)*.45-.2;const vx=Math.cos(angle)*p.speed*1.8,vy=Math.sin(angle)*p.speed;p.age++;if(p.age>p.max||p.x<0||p.x>innerWidth||p.y<0||p.y>innerHeight){p.x=Math.random()*innerWidth;p.y=Math.random()*innerHeight;p.age=0}ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-vx*6,p.y-vy*6);ctx.stroke();p.x+=vx;p.y+=vy}}raf=requestAnimationFrame(draw)};reset();draw();addEventListener('resize',reset);return()=>{cancelAnimationFrame(raf);removeEventListener('resize',reset)}},[enabled,layer]);return <canvas className={`particles ${enabled?'visible':''}`} ref={canvasRef}/>
+}
+
+function SearchBox({onPick}){const[q,setQ]=useState('');const results=useMemo(()=>q?cities.filter(c=>(c.name+c.state).toLowerCase().includes(q.toLowerCase())).slice(0,5):[],[q]);return <div className="windy-search"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search location..."/><button><Crosshair/></button>{results.length>0&&<div>{results.map(c=><button key={c.name} onClick={()=>{onPick(c);setQ('')}}><b>{c.name}</b><small>{c.state}</small></button>)}</div>}</div>}
+
+function LayerRail({layer,setLayer}){return <aside className="layer-rail"><div className="rail-menu"><span>Layers</span><button><Menu/></button></div>{layerOrder.map(key=>{const Icon=layerIcons[key],v=variables[key];return <button key={key} className={layer===key?'active':''} onClick={()=>setLayer(key)}><span>{v.short}</span><i style={{background:`conic-gradient(${v.colors.join(',')})`}}><Icon/></i></button>})}<button className="more"><span>More layers...</span><i><Plus/></i></button></aside>}
+
+function LocationPopup({city,layer,frame,result,onClose}){const v=variables[layer],idx=cities.findIndex(c=>c.name===city.name);const nearest=result?.forecast?.reduce((best,row)=>{const d=Math.hypot(Number(row.latitude)-city.coordinates[1],Number(row.longitude)-city.coordinates[0]);return !best||d<best.distance?{row,distance:d}:best},null)?.row;let value=nearest?.blend_value??cityLayerValue(city,layer,idx,frame);if(layer==='uncertainty')value=nearest?.spread??value;if(layer==='extremes')value=Math.round(Math.min(100,Number(nearest?.blend_value||0)*2+Number(nearest?.spread||0)*8));if(layer==='change')value=0;value=typeof value==='number'?Math.round(value*10)/10:value;const liveWeights=Object.entries(result?.weights||{});const weights=liveWeights.length?liveWeights.map(([name,weight],i)=>({name,value:Number(weight)*100,color:modelWeights[i%modelWeights.length].color})):modelWeights;const spread=Math.round(Number(nearest?.spread||result?.uncertainty?.mean_spread||0)*10)/10;const confidence=Math.max(45,Math.min(96,Math.round(94-spread*8)));return <section className="location-popup"><button className="popup-close" onClick={onClose}><X/></button><small>{result?'LIVE ML BLEND':'LOCAL PREVIEW'}</small><h2>{city.name}</h2><p>{city.state} · {times[frame]} IST</p><div className="popup-value"><b>{value}</b><span>{v.unit}</span></div><div className="popup-stats"><span><small>Confidence</small><b>{confidence}%</b></span><span><small>Disagreement</small><b>±{spread}</b></span><span><small>Regime</small><b>{nearest?.regime||result?.regime?.dominant_regime||city.risk}</b></span></div><div className="popup-weights">{weights.map(m=><i key={m.name} style={{width:`${m.value}%`,background:m.color}} title={`${m.name} ${Math.round(m.value)}%`}/>)}</div><p className="popup-note">{weights.map(m=>`${m.name.replaceAll('_',' ')} ${Math.round(m.value)}%`).join(' · ')}</p></section>}
+
+function BottomTimeline({frame,setFrame,playing,setPlaying}){const dayLabels=['Wed 30','Thu 1','Fri 2','Sat 3','Sun 4','Mon 5','Tue 6','Wed 7','Thu 8'];return <div className="bottom-timeline"><button className="big-play" onClick={()=>setPlaying(!playing)}>{playing?<Pause/>:<Play/>}</button><div className="hour-tag">{times[frame].split(' ')[1]}<i/></div><div className="days">{dayLabels.map((d,i)=><button key={d} className={i===frame?'active':''} onClick={()=>setFrame(i)}>{d}</button>)}</div></div>}
+
+function ControlDock({layer,particles,setParticles,mapAction,overlayOpacity,setOverlayOpacity}){return <div className="control-dock"><div><button onClick={()=>mapAction('in')}><Plus/></button><button onClick={()=>mapAction('out')}><Minus/></button><button>3D</button><button><Settings2/></button><button onClick={()=>mapAction('home')}><LocateFixed/></button></div><section><label><input type="checkbox" checked={particles} onChange={e=>setParticles(e.target.checked)}/><i/> particles</label><label className="opacity-control">Overlay <input type="range" min="0" max="0.75" step="0.05" value={overlayOpacity} onChange={e=>setOverlayOpacity(Number(e.target.value))}/></label><span>{variables[layer].unit}</span></section></div>}
+
+export default function WeatherMapWorkspace(){
+  const [layer,setLayer]=useState('wind'),[frame,setFrame]=useState(3),[playing,setPlaying]=useState(false),[selected,setSelected]=useState(null),[particles,setParticles]=useState(true),[overlayOpacity,setOverlayOpacity]=useState(.42),[model,setModel]=useState('regime_blender'),[lead,setLead]=useState(48)
+  const [forecastResult,setForecastResult]=useState(null),[apiState,setApiState]=useState({status:'connecting',message:'Connecting to forecast engine'})
+  const mapRef=useRef(null)
+  const forecastGeoJSON=useMemo(()=>forecastResult?forecastToGeoJSON(forecastResult,layer):weatherGeoJSON(layer,frame),[forecastResult,layer,frame])
+  useEffect(()=>{if(!playing)return;const id=setInterval(()=>setFrame(f=>(f+1)%9),1000);return()=>clearInterval(id)},[playing])
+  useEffect(()=>{let active=true;setApiState({status:'loading',message:'Running ML blend…'});Promise.all([getHealth(),runForecast(layer,lead,model)]).then(([,result])=>{if(!active)return;setForecastResult(result);setApiState({status:'online',message:`${result.forecast_count} grid forecasts · ${Math.round(result.diagnostics?.execution_time_ms||0)} ms`})}).catch(error=>{if(!active)return;setForecastResult(null);setApiState({status:'error',message:'Backend unavailable · showing local preview'});console.error(error)});return()=>{active=false}},[layer,lead,model])
+  const mapAction=a=>{const m=mapRef.current;if(!m)return;if(a==='in')m.zoomIn();if(a==='out')m.zoomOut();if(a==='home')m.flyTo({center:[78.6,21.2],zoom:4.25})}
+  return <main className="windy-app"><WeatherMap {...{layer,frame,selected,setSelected,mapRef,forecastGeoJSON,overlayOpacity}}/><ParticleCanvas enabled={particles} layer={layer}/><SearchBox onPick={setSelected}/><button className="share"><Upload/></button><div className="center-brand"><span><Wind/></span><b>AtmosFlow</b><small>weather intelligence</small></div><div className="top-actions"><button className="run-select">30 Sep · 06 UTC <ChevronDown/></button><button className={`api-status ${apiState.status}`}><i/>{apiState.message}</button><button className="login"><Menu/> Menu</button></div><LayerRail {...{layer,setLayer}}/>{selected&&<LocationPopup city={selected} layer={layer} frame={frame} result={forecastResult} onClose={()=>setSelected(null)}/>}<div className="lead-picker"><span>Lead time</span>{[24,48,72].map(x=><button key={x} className={lead===x?'active':''} onClick={()=>setLead(x)}>+{x}h</button>)}</div><LegendBar layer={layer}/><div className="model-picker">{[['regime_blender','Regime blend'],['inverse_variance','Inverse variance'],['equal_weight','Equal weight']].map(([key,label])=><button key={key} className={model===key?'active':''} onClick={()=>setModel(key)}>{label}</button>)}<button title="More model methods are available through the API">More…</button></div><ControlDock {...{layer,particles,setParticles,mapAction,overlayOpacity,setOverlayOpacity}}/><button className="zoom-fab in" onClick={()=>mapAction('in')}><Plus/></button><button className="zoom-fab out" onClick={()=>mapAction('out')}><Minus/></button><BottomTimeline {...{frame,setFrame,playing,setPlaying}}/></main>
+}
+
+function LegendBar({layer}){const v=variables[layer];return <div className="legend-bar"><div style={{background:`linear-gradient(90deg,${v.colors.join(',')})`}}>{v.stops.map(s=><span key={s}>{s}</span>)}</div><small>{v.unit}</small></div>}

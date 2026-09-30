@@ -1,6 +1,6 @@
 {
-  "total_records": 2,
-  "valid_records": 2,
+  "total_records": 3159,
+  "valid_records": 3159,
   "missing_records": 0,
   "out_of_range_records": 0,
   "invalid_coord_records": 0,
@@ -10,14 +10,15 @@
   "temporal_gaps_detected": 0,
   "spatial_gaps_detected": 0,
   "records_by_model": {
-    "m1": 1,
-    "m2": 1
+    "nwp_model_a": 1053,
+    "nwp_model_b": 1053,
+    "ai_model_c": 1053
   },
   "records_by_variable": {
-    "rainfall": 2
+    "rainfall": 3159
   },
   "records_by_lead_time": {
-    "24": 2
+    "24": 3159
   },
   "issues_summary": [],
   "rejection_reasons": {}
