@@ -1,7 +1,8 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .pytest_cache/
 .coverage
 htmlcov/
@@ -9,3 +10,35 @@ htmlcov/
 dist/
 build/
 .ipynb_checkpoints/
+*.venv
+env/
+venv/
+ENV/
+
+# Node & Frontend
+node_modules/
+*/node_modules/
+frontend/dist/
+dist/
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Temporary & Test artifacts
+*.log
+scratch_dom.html
+test_*.html
+*.tmp
+
+# Operating System & IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

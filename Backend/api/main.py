@@ -4,11 +4,21 @@ Exposes real/synthetic pipelines, baseline equal-weight blending, adaptive skill
 blending (Inverse-Variance, Inverse-MAE, Ridge Regression), diagnostics, and alerts.
 """
 
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+_project_root = Path(__file__).resolve().parent.parent.parent
+_ml_dir = _project_root / "ML"
+_backend_dir = _project_root / "Backend"
+for _p in [str(_ml_dir), str(_backend_dir), str(_project_root)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from configs import get_config
@@ -91,6 +101,25 @@ app = FastAPI(
     description="Research-oriented API for adaptive multi-model meteorological forecast blending, weather regimes, 2D spatial CNN gating, and probabilistic calibration.",
     version="0.6.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+    ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 class BlendRequest(BaseModel):
