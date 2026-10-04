@@ -128,3 +128,54 @@ export async function getVerificationMetrics({ variable = 'rainfall', leadTime =
   });
   return apiClient.get(`/metrics?${query.toString()}`, options);
 }
+
+/**
+ * Retrieve live operational system status: GET /api/live/status
+ */
+export async function getLiveStatus(options = {}) {
+  return apiClient.get('/api/live/status', options);
+}
+
+/**
+ * Retrieve live surface weather observation: GET /api/live/current
+ */
+export async function getLiveCurrent({ latitude, longitude, forceRefresh = false } = {}, options = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null) params.append('latitude', String(latitude));
+  if (longitude != null) params.append('longitude', String(longitude));
+  if (forceRefresh) params.append('force_refresh', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiClient.get(`/api/live/current${qs}`, options);
+}
+
+/**
+ * Retrieve live multi-horizon forecast: GET /api/live/forecast
+ */
+export async function getLiveForecast({ latitude, longitude, blender = 'regime_blender', forceRefresh = false } = {}, options = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null) params.append('latitude', String(latitude));
+  if (longitude != null) params.append('longitude', String(longitude));
+  if (blender) params.append('blender', blender);
+  if (forceRefresh) params.append('force_refresh', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiClient.get(`/api/live/forecast${qs}`, options);
+}
+
+/**
+ * Retrieve active live extreme weather alerts: GET /api/live/alerts
+ */
+export async function getLiveAlerts({ latitude, longitude } = {}, options = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null) params.append('latitude', String(latitude));
+  if (longitude != null) params.append('longitude', String(longitude));
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiClient.get(`/api/live/alerts${qs}`, options);
+}
+
+/**
+ * Retrieve live operational layer metadata: GET /api/live/metadata
+ */
+export async function getLiveMetadata(options = {}) {
+  return apiClient.get('/api/live/metadata', options);
+}
+
