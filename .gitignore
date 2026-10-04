@@ -52,7 +52,8 @@ ML/data/processed/real/weatherbench2/
 data/raw/weatherbench2/
 data/processed/real/weatherbench2/
 
-# Internal documentation and audits
-docs/
+# Live Operational Caches
+ML/data/live_cache/
+data/live_cache/
 
 
