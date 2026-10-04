@@ -95,10 +95,11 @@ from evaluation.calibration import (
 )
 from data.provenance import get_provenance_tracker
 from pipeline.forecast_pipeline import run_forecast_pipeline
+from api.live_routes import router as live_router
 
 app = FastAPI(
     title="Hybrid AI-NWP Multi-Model Forecast Blending System API",
-    description="Research-oriented API for adaptive multi-model meteorological forecast blending, weather regimes, 2D spatial CNN gating, and probabilistic calibration.",
+    description="Research-oriented API for adaptive multi-model meteorological forecast blending, weather regimes, 2D spatial CNN gating, probabilistic calibration, and real-time operational live forecasting.",
     version="0.6.0",
 )
 
@@ -116,6 +117,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(live_router)
+
 
 
 class BlendRequest(BaseModel):
