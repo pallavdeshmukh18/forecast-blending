@@ -1,0 +1,67 @@
+{
+  "experiment": "weatherbench2_real_benchmark",
+  "project_version": "0.6.0",
+  "seed": 42,
+  "dataset": "WeatherBench 2",
+  "dataset_version": "1.5_deg_equiangular_with_poles_conservative",
+  "models": [
+    "ecmwf_hres",
+    "graphcast_v2"
+  ],
+  "variables": [
+    "temperature",
+    "wind_speed",
+    "rainfall"
+  ],
+  "lead_times": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    120
+  ],
+  "region": {
+    "lat_min": 10.0,
+    "lat_max": 30.0,
+    "lon_min": 70.0,
+    "lon_max": 90.0,
+    "grid_step_deg": 1.5,
+    "description": "South Asia / Indian Subcontinent Domain"
+  },
+  "train_period": {
+    "start_date": "2020-01-01",
+    "end_date": "2020-08-31",
+    "description": "Training window (8 months, Winter + Pre-monsoon + Peak Monsoon)"
+  },
+  "validation_period": {
+    "start_date": "2020-09-01",
+    "end_date": "2020-10-15",
+    "description": "Validation window (1.5 months, Late Monsoon / Transition)"
+  },
+  "test_period": {
+    "start_date": "2020-10-16",
+    "end_date": "2020-12-31",
+    "description": "Out-of-sample Test window (2.5 months, Post-monsoon / Early Winter)"
+  },
+  "metrics": [
+    "mae",
+    "rmse",
+    "bias",
+    "correlation",
+    "crps",
+    "brier_score"
+  ],
+  "input_file_hashes": {
+    "verification_dataset": "001bd05e2b6b0b1f9e444a02cc533aa0ea31a35c047d6818d9900078cf5ce751",
+    "forecasts": "c4284c7281eeb621fdd7561ae8288f829ae9e6908dfda1f6dea91c3472622bf9",
+    "observations": "aa675f489d68a54f12b6824cd42b0e949e7099301529faa0c70b01dab28f27fc"
+  },
+  "output_file_hashes": {
+    "summary": "53188509a6219f1a02aa174ed2fc68e8f5d64eb76657fcd3f27f703452502fc0",
+    "deterministic": "f4af9666c260bff75677a6a954283448b62d4bb817b8106663bfd350929046de",
+    "probability": "e4358c97f97ff7327f0bdd5f6c51ac18317b445b3c6e60bb8ddec544c2132032",
+    "lead_times": "297862c91cfb4314a2cfb17551dba923c597e2c2f389b7c6ea1718a0585b0b7b"
+  },
+  "timestamp": "2026-10-03T17:05:17.819863+00:00"
+}

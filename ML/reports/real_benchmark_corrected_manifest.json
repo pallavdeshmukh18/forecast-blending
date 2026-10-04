@@ -1,0 +1,58 @@
+{
+  "experiment": "weatherbench2_real_benchmark_corrected",
+  "seed": 42,
+  "dataset": "WeatherBench 2",
+  "models": [
+    "ecmwf_hres",
+    "graphcast_v2"
+  ],
+  "variables": [
+    "temperature",
+    "wind_speed",
+    "rainfall"
+  ],
+  "lead_times": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    120
+  ],
+  "train_period": {
+    "start_date": "2020-01-01",
+    "end_date": "2020-08-31",
+    "description": "Training window (8 months, Winter + Pre-monsoon + Peak Monsoon)"
+  },
+  "validation_period": {
+    "start_date": "2020-09-01",
+    "end_date": "2020-10-15",
+    "description": "Validation window (1.5 months, Late Monsoon / Transition)"
+  },
+  "test_period": {
+    "start_date": "2020-10-16",
+    "end_date": "2020-12-31",
+    "description": "Out-of-sample Test window (2.5 months, Post-monsoon / Early Winter)"
+  },
+  "code_version": "0.6.0",
+  "input_hashes": {
+    "verification_dataset": "001bd05e2b6b0b1f9e444a02cc533aa0ea31a35c047d6818d9900078cf5ce751",
+    "forecasts": "c4284c7281eeb621fdd7561ae8288f829ae9e6908dfda1f6dea91c3472622bf9",
+    "observations": "aa675f489d68a54f12b6824cd42b0e949e7099301529faa0c70b01dab28f27fc"
+  },
+  "output_hashes": {
+    "corrected_summary": "e5b666617d38d61d5384879365ff9c6827cab5b5868998db1960bb6d8cf91122",
+    "correction_delta": "c0e470937e6228a06743c5dafe3cc21439345fa8c998664683c8a2a2d3312832",
+    "corrected_deterministic": "15436979776b0599256ae3f12ef0704ad115c6f9a6f9a162c5aa0d57f75a077d",
+    "corrected_probability": "40e648962ac4a004e204bf1f1a07acad78d71d71ddc84f447e43af609198a13f",
+    "corrected_weights": "a4901ec6006c44bf4f13a3f0afeae79bbe295a6aa4f7a9140291802e67afd977",
+    "method_execution_audit": "ba95ac395572d325ff9f3246e922a4ff967eebbbf5f443ae53469a1ff32d77df"
+  },
+  "checkpoint_hashes": {
+    "neural_regime_gating": "51c19ad6e6e5ac878659dc98b3b483db14f58d70af75a6cc68b7e6586092fdda",
+    "spatial_cnn_blender": "e1fb60e65a813a8c82db4c62d9f5cad8ec326a093ed13632e47514a0a4cb5ad8",
+    "spatiotemporal_convgru": "5f4a35c8c0bf48ac1ce825abdc04ef9922b1a653de1c78d6e19a49fb50b3c667"
+  },
+  "reproducibility_verified": true,
+  "timestamp": "2026-10-03T18:05:37.822344+00:00"
+}

@@ -1,0 +1,15 @@
+method,implementation_class,fit_called,predict_called,actual_forward_pass,train_only_fit,hardcoded_weights_detected,alias_detected,test_execution_valid,audit_status,notes
+ecmwf_hres,Baseline (NWP Raw),False,True,False,True,False,False,True,PASS,Raw NWP deterministic benchmark
+graphcast_v2,Baseline (AI Raw),False,True,False,True,False,False,True,PASS,Raw AI-NWP deterministic benchmark
+equal_weight,EqualWeightBlender,False,True,False,True,False,False,True,PASS,Simple arithmetic average baseline
+inverse_variance,InverseVarianceSkillBlender,True,True,False,True,False,False,True,PASS,Skill-weighted convex combination (Train fit)
+inverse_mae,InverseMAESkillBlender,True,True,False,True,False,False,True,PASS,Inverse-MAE convex combination (Train fit)
+ridge_blend,RidgeBlender,True,True,False,True,False,False,True,PASS,Ridge regression blender (Train fit)
+regime_blender,RegimeInverseVarianceBlender,True,True,False,True,False,False,True,PASS,Regime-conditioned skill weighting (Train fit)
+neural_gating,WeatherRegimeGatingNetwork,True,True,True,True,False,False,True,PASS_WITH_LIMITATIONS,Learned dynamic weights collapsed to GraphCast dominant expert
+spatial_inverse_variance,SpatialInverseVarianceBlender,True,True,False,True,False,False,True,PASS,Learned 2D spatial grid cell error variance weights
+spatial_cnn,SpatialCNNBlender,True,True,True,True,False,False,True,PASS,2D Convolutional spatial gating network forward pass
+spatiotemporal_convgru,SpatioTemporalCNNBlender,True,True,True,True,False,False,True,PASS,Spatio-temporal ConvGRU sequence forward pass
+gaussian_emos,EnsembleModelOutputStatistics,True,True,False,True,False,False,True,PASS,Gaussian parametric EMOS (scoped to temp/wind; N/A rain)
+zero_inflated_gamma_emos,ZeroInflatedGammaEMOS,True,True,False,True,False,False,True,PASS,Zero-Inflated Gamma EMOS (scoped strictly to rain; N/A temp/wind)
+extreme_calibration,ExtremeProbabilityEngine,True,True,False,True,False,False,True,PASS,Extreme probability engine delegating rainfall exceedances to ZI-Gamma

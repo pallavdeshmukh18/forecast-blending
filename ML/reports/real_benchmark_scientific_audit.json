@@ -1,0 +1,133 @@
+{
+  "audit_version": "1.0.0",
+  "project": "Hybrid AI-NWP Multi-Model Forecast Blending System",
+  "status": "PASS_WITH_LIMITATIONS",
+  "dataset": "WeatherBench 2",
+  "domain": "South Asia (10-30N, 70-90E)",
+  "artifact_integrity": {
+    "status": "PASS",
+    "total_files_checked": 24,
+    "manifest_hashes_matched": true,
+    "checkpoint_hashes_matched": true,
+    "missing_files": []
+  },
+  "synthetic_isolation": {
+    "status": "PASS",
+    "synthetic_baseline_sha256": "54cb659a7d8e86f0014114e616d2ecbf834d574b877b8db69326e6440c8223fd",
+    "verified_untouched": true
+  },
+  "method_routing": {
+    "status": "PASS_WITH_LIMITATIONS",
+    "methods_evaluated": 14,
+    "fully_implemented_real_methods": [
+      "ecmwf_hres",
+      "graphcast_v2",
+      "equal_weight",
+      "inverse_variance",
+      "regime_blender"
+    ],
+    "methods_using_shortcut_weights": [
+      "inverse_mae",
+      "ridge_blend",
+      "neural_gating",
+      "spatial_inverse_variance",
+      "spatial_cnn",
+      "spatiotemporal_convgru"
+    ],
+    "methods_using_point_aliases": [
+      "gaussian_emos",
+      "zero_inflated_gamma_emos",
+      "extreme_calibration"
+    ]
+  },
+  "variable_compatibility": {
+    "status": "CORRECTION_REQUIRED",
+    "compatible_pairs": {
+      "temperature": ["ecmwf_hres", "graphcast_v2", "equal_weight", "inverse_variance", "inverse_mae", "ridge_blend", "regime_blender", "neural_gating", "spatial_inverse_variance", "spatial_cnn", "spatiotemporal_convgru", "gaussian_emos"],
+      "wind_speed": ["ecmwf_hres", "graphcast_v2", "equal_weight", "inverse_variance", "inverse_mae", "ridge_blend", "regime_blender", "neural_gating", "spatial_inverse_variance", "spatial_cnn", "spatiotemporal_convgru", "gaussian_emos"],
+      "rainfall": ["ecmwf_hres", "graphcast_v2", "equal_weight", "inverse_variance", "inverse_mae", "ridge_blend", "regime_blender", "neural_gating", "spatial_inverse_variance", "spatial_cnn", "spatiotemporal_convgru", "zero_inflated_gamma_emos", "extreme_calibration"]
+    },
+    "incompatible_evaluations_found": [
+      "zero_inflated_gamma_emos evaluated on temperature",
+      "zero_inflated_gamma_emos evaluated on wind_speed",
+      "extreme_calibration evaluated on temperature",
+      "extreme_calibration evaluated on wind_speed",
+      "gaussian_emos evaluated on rainfall"
+    ]
+  },
+  "probabilistic_validation": {
+    "status": "STATISTICALLY_LIMITED",
+    "crps_methodology": "Gaussian analytical with diagnostic std for temp/wind; point MAE proxy for rainfall",
+    "picp_methodology": "Nominal 90% Gaussian interval around point forecast",
+    "brier_score_methodology": "Threshold exceedance P > 5mm with linear scaling proxy"
+  },
+  "extreme_event_validation": {
+    "status": "STATISTICALLY_LIMITED",
+    "thresholds": {
+      "rainfall_5mm": {"positive_events": 42, "total": 1568, "rate": 0.0268},
+      "rainfall_15mm": {"positive_events": 9, "total": 1568, "rate": 0.0057},
+      "temperature_35C": {"positive_events": 0, "total": 1568, "rate": 0.0}
+    },
+    "limitation": "Low extreme event counts in winter January test window over South Asia"
+  },
+  "regime_validation": {
+    "status": "PASS",
+    "type": "Rule-based atmospheric classification",
+    "leakage_free": true
+  },
+  "sample_count_reconciliation": {
+    "status": "PASS",
+    "raw_test_records": 7056,
+    "ecmwf_hres_records": 2352,
+    "graphcast_records": 4704,
+    "co_initialized_instances_per_var": 1568,
+    "total_co_initialized_instances": 4704,
+    "reconciliation_formula": "1568 * 3 variables = 4704 co-initialized evaluation pairs"
+  },
+  "disagreement_analysis": {
+    "status": "PASS",
+    "total_samples": 3332,
+    "correlations": {
+      "temperature": {"pearson_r": 0.4537, "p_value": 6.63e-169, "spearman_rho": 0.4392},
+      "wind_speed": {"pearson_r": 0.3370, "p_value": 2.87e-89, "spearman_rho": 0.2325},
+      "rainfall": {"pearson_r": 0.6939, "p_value": 0.0, "spearman_rho": 0.7904}
+    }
+  },
+  "reproducibility": {
+    "status": "PASS",
+    "byte_identical_rerun": true,
+    "global_seed": 42
+  },
+  "scientific_claims": {
+    "graphcast_superior_short_range_temp_wind": "SUPPORTED",
+    "equal_weight_reduces_rmse_all_variables": "PARTIALLY_SUPPORTED",
+    "regime_blending_adjusts_weights_dynamically": "SUPPORTED",
+    "zero_inflated_gamma_calibrated_continuous_probs": "UNSUPPORTED_REQUIRES_CORRECTION",
+    "disagreement_correlates_with_error": "SUPPORTED"
+  },
+  "issues": [
+    {
+      "id": "ISSUE-1",
+      "severity": "MODERATE",
+      "description": "Zero-Inflated Gamma EMOS and Extreme Calibration were evaluated on temperature, causing zero-clipping of winter temperatures and artificial error spikes.",
+      "remediation": "Restrict Gamma EMOS to precipitation only."
+    },
+    {
+      "id": "ISSUE-2",
+      "severity": "LOW",
+      "description": "real_disagreement_analysis.csv recorded NaNs because of unmatched 06z/18z single-model cycles.",
+      "remediation": "Compute disagreement correlation strictly on co-initialized complete cases."
+    },
+    {
+      "id": "ISSUE-3",
+      "severity": "LOW",
+      "description": "Methods 5, 6, 8, 9, 10, 11 used fixed blending weights in the test evaluation script rather than calling model.predict().",
+      "remediation": "Document as shortcut evaluation baseline and wire full model.predict() pipelines."
+    }
+  ],
+  "required_corrections": [
+    "Remove Gamma EMOS from temperature and wind evaluation rows.",
+    "Populate exact non-null disagreement statistics in CSV.",
+    "Clarify in scientific report that GraphCast v2 alone outperforms equal-weight blending on temperature."
+  ]
+}

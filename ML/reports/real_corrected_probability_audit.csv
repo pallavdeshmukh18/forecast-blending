@@ -1,0 +1,10 @@
+method,variable,distribution,parameter_source,crps_implementation,valid,brier_score,picp_90,mpiw_90
+gaussian_emos,temperature,"Gaussian N(mu, sigma)",CRPS-minimized affine link on Train,Analytical Gaussian CRPS,True,N/A,0.8954,2.6841
+gaussian_emos,wind_speed,"Gaussian N(mu, sigma)",CRPS-minimized affine link on Train,Analytical Gaussian CRPS,True,N/A,0.8982,1.5124
+gaussian_emos,rainfall,N/A,N/A,N/A (Incompatible Positive Support),True,N/A,N/A,N/A
+zero_inflated_gamma_emos,temperature,N/A,N/A,N/A (Incompatible Real Domain),True,N/A,N/A,N/A
+zero_inflated_gamma_emos,wind_speed,N/A,N/A,N/A (Incompatible Real Domain),True,N/A,N/A,N/A
+zero_inflated_gamma_emos,rainfall,"Zero-Inflated Gamma (p0, alpha, theta)",Logit p0 + Gamma NLL on Train,Monte-Carlo Energy CRPS,True,0.0382,N/A,N/A
+extreme_calibration,temperature,N/A,N/A,N/A,True,N/A,N/A,N/A
+extreme_calibration,wind_speed,N/A,N/A,N/A,True,N/A,N/A,N/A
+extreme_calibration,rainfall,Parametric Exceedance Engine (ZI-Gamma Shared Engine),Shared ZI-Gamma + GEV Tail Engine,Monte-Carlo Energy CRPS,True,0.0382,N/A,N/A

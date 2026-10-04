@@ -1,0 +1,207 @@
+{
+  "audit_status": "PASS_WITH_LIMITATIONS",
+  "version": "0.6.0",
+  "benchmark_phase": "Phase 5.5 Scientific Integrity Audit",
+  "methods": {
+    "total_evaluated": 14,
+    "genuinely_executed": 14,
+    "hardcoded_shortcuts_detected": 0,
+    "aliases_detected": 0
+  },
+  "neural_gating_behavior": {
+    "status": "CONVERGED_DOMINANT_EXPERT",
+    "hres_mean_weight": 7.33e-07,
+    "graphcast_mean_weight": 0.9999993,
+    "identical_prediction_root_cause": "Gradient descent on MSE loss pushed softmax routing to 100% GraphCast v2 on train split; not an alias."
+  },
+  "probabilistic": {
+    "gaussian_emos": "VALID (scoped to temp/wind, N/A rain)",
+    "zero_inflated_gamma_emos": "VALID (scoped to rain, N/A temp/wind)",
+    "extreme_calibration": "VALID_SHARED_PROBABILITY_MODEL (ExtremeProbabilityEngine delegating rainfall exceedance to ZI-Gamma)",
+    "crps_implementation": "Analytical Gaussian for EMOS; Monte-Carlo Energy sampling for ZI-Gamma",
+    "brier_score_valid": true
+  },
+  "spatial": {
+    "spatial_inverse_variance": "VALID (cell-wise learned error variances on 14x14 grid)",
+    "spatial_cnn": "VALID (2D Conv forward pass)",
+    "spatiotemporal_convgru": "VALID (Sequence ConvGRU forward pass)"
+  },
+  "disagreement": {
+    "temperature": {
+      "n_samples": 784,
+      "mean_disagreement": 0.8385,
+      "pearson_r": 0.5138,
+      "p_value": 4.9e-54,
+      "spearman_rho": 0.5062
+    },
+    "wind_speed": {
+      "n_samples": 784,
+      "mean_disagreement": 0.4715,
+      "pearson_r": 0.3462,
+      "p_value": 1.68e-23,
+      "spearman_rho": 0.2076
+    },
+    "rainfall": {
+      "n_samples": 784,
+      "mean_disagreement": 0.6469,
+      "pearson_r": 0.7948,
+      "p_value": 8.33e-172,
+      "spearman_rho": 0.8094
+    }
+  },
+  "statistical_significance": [
+    {
+      "variable": "temperature",
+      "comparison": "ConvGRU vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": 0.0049,
+      "relative_improvement_pct": 1.03,
+      "ci_95_lower": 0.0043,
+      "ci_95_upper": 0.0056,
+      "bootstrap_p_value": 0.0001,
+      "statistically_significant": true,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "temperature",
+      "comparison": "Inverse Variance vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0214,
+      "relative_improvement_pct": -4.49,
+      "ci_95_lower": -0.0565,
+      "ci_95_upper": 0.0105,
+      "bootstrap_p_value": 0.19,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "temperature",
+      "comparison": "Regime Blender vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0223,
+      "relative_improvement_pct": -4.68,
+      "ci_95_lower": -0.0584,
+      "ci_95_upper": 0.0106,
+      "bootstrap_p_value": 0.18,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "wind_speed",
+      "comparison": "Spatial CNN vs Regime Blender",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0001,
+      "relative_improvement_pct": -0.04,
+      "ci_95_lower": -0.0009,
+      "ci_95_upper": 0.0006,
+      "bootstrap_p_value": 0.714,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "wind_speed",
+      "comparison": "Inverse Variance vs Regime Blender",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0006,
+      "relative_improvement_pct": -0.2,
+      "ci_95_lower": -0.0014,
+      "ci_95_upper": 0.0004,
+      "bootstrap_p_value": 0.246,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "wind_speed",
+      "comparison": "Inverse MAE vs Regime Blender",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0007,
+      "relative_improvement_pct": -0.23,
+      "ci_95_lower": -0.0052,
+      "ci_95_upper": 0.0034,
+      "bootstrap_p_value": 0.698,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "rainfall",
+      "comparison": "Ridge vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0577,
+      "relative_improvement_pct": -13.52,
+      "ci_95_lower": -0.1262,
+      "ci_95_upper": -0.0067,
+      "bootstrap_p_value": 0.012,
+      "statistically_significant": true,
+      "effect_classification": "Meaningful"
+    },
+    {
+      "variable": "rainfall",
+      "comparison": "Spatial CNN vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.0361,
+      "relative_improvement_pct": -8.46,
+      "ci_95_lower": -0.0367,
+      "ci_95_upper": -0.0356,
+      "bootstrap_p_value": 0.0001,
+      "statistically_significant": true,
+      "effect_classification": "Meaningful"
+    },
+    {
+      "variable": "rainfall",
+      "comparison": "ConvGRU vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": 0.0003,
+      "relative_improvement_pct": 0.06,
+      "ci_95_lower": -0.0005,
+      "ci_95_upper": 0.001,
+      "bootstrap_p_value": 0.508,
+      "statistically_significant": false,
+      "effect_classification": "Negligible / Equivalence"
+    },
+    {
+      "variable": "rainfall",
+      "comparison": "ZI-Gamma vs GraphCast",
+      "n_pairs": 784,
+      "mean_paired_difference": -0.144,
+      "relative_improvement_pct": -33.74,
+      "ci_95_lower": -0.1447,
+      "ci_95_upper": -0.1433,
+      "bootstrap_p_value": 0.0001,
+      "statistically_significant": true,
+      "effect_classification": "Meaningful"
+    }
+  ],
+  "reproducibility": {
+    "status": "PASS",
+    "bit_for_bit_identical": true,
+    "manifest_verified": true
+  },
+  "synthetic_isolation": {
+    "status": "PASS",
+    "hash_matches": true,
+    "sha256": "54cb659a7d8e86f0014114e616d2ecbf834d574b877b8db69326e6440c8223fd"
+  },
+  "critical_findings": [
+    {
+      "id": "CF-1",
+      "title": "Neural Gating Convergence to Dominant Single Expert",
+      "severity": "LOW / SCIENTIFIC LIMITATION",
+      "description": "Unregularized MSE minimization during neural gating training caused softmax weights to converge to GraphCast (~1.0) and ECMWF (~0.0) across all test samples, matching GraphCast test scores to 4 decimal places."
+    },
+    {
+      "id": "CF-2",
+      "title": "Extreme Calibration & ZI-Gamma Shared Probability Engine",
+      "severity": "DOCUMENTED ARCHITECTURAL COMPOSITION",
+      "description": "ExtremeProbabilityEngine wraps ZeroInflatedGammaEMOS for rainfall exceedance probabilities; identical Brier (0.0382) and CRPS (0.4156) are legitimate shared engine outputs, not routing collision."
+    }
+  ],
+  "limitations": [
+    "Small sample test split size (784 co-initialized pairs per variable, 2,352 total).",
+    "Exploratory multiple comparison significance tests; differences between top blending methods (ConvGRU vs GraphCast on temperature) are small (~1.4% relative improvement).",
+    "Extreme precipitation events (>= 15mm) are sparse in the test window, limiting heavy tail inference."
+  ],
+  "recommended_next_steps": [
+    "Add entropy regularization (or Dirichlet prior) to Neural Gating to prevent complete winner-take-all expert collapse.",
+    "Expand WeatherBench 2 evaluation period to full multi-year climatological record (2018-2022) to increase extreme event statistical power."
+  ]
+}

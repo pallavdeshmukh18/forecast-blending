@@ -1,0 +1,4 @@
+variable,n_samples,mean_disagreement,max_disagreement,disagreement_error_correlation
+temperature,1568,,,
+wind_speed,1568,,,
+rainfall,1568,,,

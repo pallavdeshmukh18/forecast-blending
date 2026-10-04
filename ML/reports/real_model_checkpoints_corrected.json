@@ -1,0 +1,20 @@
+{
+  "neural_regime_gating": {
+    "checkpoint_path": "ML\\models\\checkpoints\\real\\neural_regime_gating_real_corrected.pt",
+    "sha256": "51c19ad6e6e5ac878659dc98b3b483db14f58d70af75a6cc68b7e6586092fdda",
+    "parameter_count": 3554,
+    "architecture": "MLP (Input -> 64 -> 32 -> Softmax)"
+  },
+  "spatial_cnn_blender": {
+    "checkpoint_path": "ML\\models\\checkpoints\\real\\spatial_cnn_blender_real_corrected.pt",
+    "sha256": "e1fb60e65a813a8c82db4c62d9f5cad8ec326a093ed13632e47514a0a4cb5ad8",
+    "parameter_count": 2578,
+    "architecture": "2D CNN (Conv2D -> ReLU -> Conv2D -> Softmax)"
+  },
+  "spatiotemporal_convgru": {
+    "checkpoint_path": "ML\\models\\checkpoints\\real\\spatiotemporal_convgru_real_corrected.pt",
+    "sha256": "5f4a35c8c0bf48ac1ce825abdc04ef9922b1a653de1c78d6e19a49fb50b3c667",
+    "parameter_count": 16450,
+    "architecture": "ConvGRU (Sequence -> ConvGRU -> Softmax)"
+  }
+}

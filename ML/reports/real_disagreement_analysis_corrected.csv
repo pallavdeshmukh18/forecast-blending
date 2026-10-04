@@ -1,0 +1,4 @@
+variable,n_samples,mean_disagreement,max_disagreement,pearson_r,p_value,spearman_rho
+temperature,784,0.8385,3.9669,0.5138,4.9e-54,0.5062
+wind_speed,784,0.4715,3.5465,0.3462,1.68e-23,0.2076
+rainfall,784,0.6469,35.28,0.7948,8.33e-172,0.8094

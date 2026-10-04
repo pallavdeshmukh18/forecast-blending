@@ -1,0 +1,11 @@
+variable,comparison,n_pairs,mean_paired_difference,relative_improvement_pct,ci_95_lower,ci_95_upper,bootstrap_p_value,statistically_significant,effect_classification
+temperature,ConvGRU vs GraphCast,784,0.0049,1.03,0.0043,0.0056,0.0001,True,Negligible / Equivalence
+temperature,Inverse Variance vs GraphCast,784,-0.0214,-4.49,-0.0565,0.0105,0.19,False,Negligible / Equivalence
+temperature,Regime Blender vs GraphCast,784,-0.0223,-4.68,-0.0584,0.0106,0.18,False,Negligible / Equivalence
+wind_speed,Spatial CNN vs Regime Blender,784,-0.0001,-0.04,-0.0009,0.0006,0.714,False,Negligible / Equivalence
+wind_speed,Inverse Variance vs Regime Blender,784,-0.0006,-0.2,-0.0014,0.0004,0.246,False,Negligible / Equivalence
+wind_speed,Inverse MAE vs Regime Blender,784,-0.0007,-0.23,-0.0052,0.0034,0.698,False,Negligible / Equivalence
+rainfall,Ridge vs GraphCast,784,-0.0577,-13.52,-0.1262,-0.0067,0.012,True,Meaningful
+rainfall,Spatial CNN vs GraphCast,784,-0.0361,-8.46,-0.0367,-0.0356,0.0001,True,Meaningful
+rainfall,ConvGRU vs GraphCast,784,0.0003,0.06,-0.0005,0.001,0.508,False,Negligible / Equivalence
+rainfall,ZI-Gamma vs GraphCast,784,-0.144,-33.74,-0.1447,-0.1433,0.0001,True,Meaningful
