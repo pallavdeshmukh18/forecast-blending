@@ -542,3 +542,80 @@ class GenericObservationProvider(BaseObservationProvider):
             return self.load_from_file(file_path)
 
         raise ValueError("GenericObservationProvider requires a file_path to load observations from.")
+
+
+class WeatherBench2ForecastProvider(BaseForecastProvider):
+    """
+    Adapter for WeatherBench 2 Multi-Model Forecast datasets (e.g., ECMWF HRES, GraphCast, Pangu-Weather).
+    Raw units: Temperature in Kelvin, Precipitation in meters, Wind Speed in m/s.
+    """
+
+    def __init__(
+        self,
+        provider_name: str = "weatherbench2_forecast",
+        default_model_name: str = "ecmwf_hres",
+        config: Optional[AppConfig] = None,
+    ):
+        source_units = {
+            "temperature": "kelvin",
+            "rainfall": "m",
+            "wind_speed": "m/s",
+        }
+        super().__init__(
+            provider_name=provider_name,
+            model_type="nwp" if "hres" in default_model_name.lower() else "ai",
+            default_model_name=default_model_name,
+            source_units=source_units,
+            config=config,
+        )
+
+    def fetch_forecast(
+        self,
+        run_times: Optional[List[datetime]] = None,
+        lead_times: Optional[List[int]] = None,
+        variables: Optional[List[str]] = None,
+        region: Optional[str] = None,
+        file_path: Optional[Union[str, Path]] = None,
+    ) -> pd.DataFrame:
+        if file_path:
+            return self.load_from_file(file_path)
+
+        raise NotImplementedError(
+            f"Direct live streaming without pre-ingestion for '{self.provider_name}' is not recommended. "
+            "Please use ML/scripts/ingest_weatherbench2.py to materialize local Parquet records."
+        )
+
+
+class WeatherBench2ObservationProvider(BaseObservationProvider):
+    """
+    Adapter for WeatherBench 2 Ground-Truth Reference datasets (ERA5 Reanalysis).
+    Raw units: Temperature in Kelvin, Precipitation in meters, Wind Speed in m/s.
+    """
+
+    def __init__(
+        self,
+        provider_name: str = "weatherbench2_era5",
+        config: Optional[AppConfig] = None,
+    ):
+        source_units = {
+            "temperature": "kelvin",
+            "rainfall": "m",
+            "wind_speed": "m/s",
+        }
+        super().__init__(provider_name=provider_name, source_units=source_units, config=config)
+
+    def fetch_observations(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        variables: Optional[List[str]] = None,
+        region: Optional[str] = None,
+        file_path: Optional[Union[str, Path]] = None,
+    ) -> pd.DataFrame:
+        if file_path:
+            return self.load_from_file(file_path)
+
+        raise NotImplementedError(
+            f"Direct live streaming without pre-ingestion for '{self.provider_name}' is not recommended. "
+            "Please use ML/scripts/ingest_weatherbench2.py to materialize local Parquet records."
+        )

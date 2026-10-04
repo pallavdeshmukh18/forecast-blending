@@ -5,9 +5,9 @@ environment: "research"
 # Execution data mode: 'synthetic' (default), 'historical', or 'real'
 data:
   mode: "synthetic"
-  real_forecasts_path: "data/forecasts/real_forecasts.parquet"
-  real_observations_path: "data/processed/real_observations.parquet"
-  verification_dataset_path: "data/processed/verification_dataset.parquet"
+  real_forecasts_path: "data/processed/real/weatherbench2/real_forecasts.parquet"
+  real_observations_path: "data/processed/real/weatherbench2/real_observations.parquet"
+  verification_dataset_path: "data/processed/real/weatherbench2/real_verification_dataset.parquet"
 
 # Pipeline execution configuration (Phase 6)
 pipeline:
@@ -368,3 +368,35 @@ synthetic_data:
   time_step_hours: 6
   stations_per_region: 3
   spatial_grid_shape: [16, 16]
+
+# WeatherBench 2 Real Meteorological Dataset Configuration
+weatherbench2:
+  enabled: true
+  era5_source: "gs://weatherbench2/datasets/era5/1959-2022-6h-240x121_equiangular_with_poles_conservative.zarr"
+  hres_source: "gs://weatherbench2/datasets/hres/2016-2022-0012-240x121_equiangular_with_poles_conservative.zarr"
+  graphcast_source: "gs://weatherbench2/datasets/graphcast_v2/2020-240x121_equiangular_with_poles_conservative.zarr"
+  pangu_source: "gs://weatherbench2/datasets/pangu/2018-2022_0012_240x121_equiangular_with_poles_conservative.zarr"
+  variables:
+    - "temperature"
+    - "wind_speed"
+    - "rainfall"
+  start_date: "2020-01-01"
+  end_date: "2020-01-05"
+  forecast_models:
+    - "ecmwf_hres"
+    - "graphcast"
+  lead_times_hours:
+    - 6
+    - 12
+    - 24
+    - 48
+  region:
+    lat_min: 10.0
+    lat_max: 30.0
+    lon_min: 70.0
+    lon_max: 90.0
+    description: "South Asia / Indian Subcontinent Domain"
+  resolution: "1.5_deg_equiangular"
+  raw_dir: "data/raw/weatherbench2"
+  processed_dir: "data/processed/real/weatherbench2"
+  provenance_dir: "data/provenance/weatherbench2"

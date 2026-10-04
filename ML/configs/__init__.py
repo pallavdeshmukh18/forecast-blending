@@ -167,9 +167,35 @@ class SyntheticDataConfig(BaseModel):
 
 class DataConfig(BaseModel):
     mode: str = "synthetic"  # 'synthetic' or 'real'
-    real_forecasts_path: Optional[str] = "data/forecasts/real_forecasts.parquet"
-    real_observations_path: Optional[str] = "data/processed/real_observations.parquet"
-    verification_dataset_path: Optional[str] = "data/processed/verification_dataset.parquet"
+    real_forecasts_path: Optional[str] = "data/processed/real/weatherbench2/real_forecasts.parquet"
+    real_observations_path: Optional[str] = "data/processed/real/weatherbench2/real_observations.parquet"
+    verification_dataset_path: Optional[str] = "data/processed/real/weatherbench2/real_verification_dataset.parquet"
+
+
+class WeatherBench2Config(BaseModel):
+    enabled: bool = True
+    era5_source: str = "gs://weatherbench2/datasets/era5/1959-2022-6h-240x121_equiangular_with_poles_conservative.zarr"
+    hres_source: str = "gs://weatherbench2/datasets/hres/2016-2022-0012-240x121_equiangular_with_poles_conservative.zarr"
+    graphcast_source: str = "gs://weatherbench2/datasets/graphcast_v2/2020-240x121_equiangular_with_poles_conservative.zarr"
+    pangu_source: str = "gs://weatherbench2/datasets/pangu/2018-2022_0012_240x121_equiangular_with_poles_conservative.zarr"
+    variables: List[str] = Field(default_factory=lambda: ["temperature", "wind_speed", "rainfall"])
+    start_date: str = "2020-01-01"
+    end_date: str = "2020-01-05"
+    forecast_models: List[str] = Field(default_factory=lambda: ["ecmwf_hres", "graphcast"])
+    lead_times_hours: List[int] = Field(default_factory=lambda: [6, 12, 24, 48])
+    region: RegionConfig = Field(
+        default_factory=lambda: RegionConfig(
+            lat_min=10.0,
+            lat_max=30.0,
+            lon_min=70.0,
+            lon_max=90.0,
+            description="South Asia / Indian Subcontinent Domain",
+        )
+    )
+    resolution: str = "1.5_deg_equiangular"
+    raw_dir: str = "data/raw/weatherbench2"
+    processed_dir: str = "data/processed/real/weatherbench2"
+    provenance_dir: str = "data/provenance/weatherbench2"
 
 
 class SpatialAlignmentConfig(BaseModel):
@@ -315,6 +341,7 @@ class AppConfig(BaseModel):
     extreme_event_thresholds: ExtremeThresholdsConfig
     paths: PathsConfig
     synthetic_data: SyntheticDataConfig
+    weatherbench2: WeatherBench2Config = Field(default_factory=WeatherBench2Config)
 
 
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config.yaml"

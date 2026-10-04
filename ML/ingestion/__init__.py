@@ -47,6 +47,8 @@ from ingestion.providers import (
     ERA5Provider,
     StationProvider,
     GenericObservationProvider,
+    WeatherBench2ForecastProvider,
+    WeatherBench2ObservationProvider,
 )
 from ingestion.observations import (
     ObservationSource,
@@ -107,6 +109,8 @@ __all__ = [
     "ERA5Provider",
     "StationProvider",
     "GenericObservationProvider",
+    "WeatherBench2ForecastProvider",
+    "WeatherBench2ObservationProvider",
     "ObservationSource",
     "StationObservationSource",
     "GriddedReanalysisObservationSource",

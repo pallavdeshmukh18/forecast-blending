@@ -112,8 +112,8 @@ def match_forecasts_to_observations(
         o_matched["f_lat_round"] = o_matched["forecast_latitude"].round(4)
         o_matched["f_lon_round"] = o_matched["forecast_longitude"].round(4)
 
-        # Merge on variable and spatial grid key
-        join_keys = ["variable", "f_lat_round", "f_lon_round"]
+        # Merge on variable, spatial grid key, and timestamp to avoid Cartesian memory explosion
+        join_keys = ["variable", "f_lat_round", "f_lon_round", "timestamp"]
         base_obs_cols = [
             "variable",
             "f_lat_round",
@@ -127,7 +127,8 @@ def match_forecasts_to_observations(
         opt_obs_cols = [c for c in ["station_id", "region", "elevation"] if c in o_matched.columns and c not in f_sub.columns]
         obs_select_cols = [c for c in base_obs_cols + opt_obs_cols if c in o_matched.columns]
 
-        merged = pd.merge(
+        # Exact timestamp merge
+        m_verified = pd.merge(
             f_sub,
             o_matched[obs_select_cols],
             on=join_keys,
@@ -135,14 +136,19 @@ def match_forecasts_to_observations(
             how="inner",
         )
 
-        if merged.empty:
-            continue
-
-        # 2. Temporal tolerance check
-        time_diff_secs = (merged["timestamp"] - merged["timestamp_obs"]).abs().dt.total_seconds()
-        time_diff_mins = time_diff_secs / 60.0
-        temporal_mask = time_diff_mins <= tol_mins
-        m_verified = merged[temporal_mask].copy()
+        # If tolerance is non-zero and exact matching found no records, fallback to merge_asof
+        if m_verified.empty and tol_mins > 0:
+            f_sorted = f_sub.sort_values("timestamp")
+            o_sorted = o_matched[obs_select_cols].sort_values("timestamp")
+            m_verified = pd.merge_asof(
+                f_sorted,
+                o_sorted,
+                on="timestamp",
+                by=["variable", "f_lat_round", "f_lon_round"],
+                tolerance=pd.Timedelta(minutes=tol_mins),
+                direction="nearest",
+            )
+            m_verified = m_verified[m_verified["observed_value"].notna()].copy()
 
         if m_verified.empty:
             continue

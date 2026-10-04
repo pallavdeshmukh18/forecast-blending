@@ -96,6 +96,36 @@ class GenericObservationProvider(ObservationProvider):
         raise ValueError("GenericObservationProvider requires a file_path.")
 
 
+class WeatherBench2ForecastProvider(ForecastProvider):
+    def __init__(self, provider_name: str = "weatherbench2_forecast", default_model_name: str = "ecmwf_hres", config=None):
+        super().__init__(
+            provider_name=provider_name,
+            model_type="nwp" if "hres" in default_model_name.lower() else "ai",
+            default_model_name=default_model_name,
+            source_units={"temperature": "kelvin", "rainfall": "m", "wind_speed": "m/s"},
+            config=config,
+        )
+    def fetch_forecast(self, run_times=None, lead_times=None, variables=None, region=None, file_path=None):
+        if file_path:
+            return self.load_from_file(file_path)
+        raise ValueError("WeatherBench2ForecastProvider requires a file_path or pre-ingested parquet.")
+    def list_available_runs(self):
+        return []
+
+
+class WeatherBench2ObservationProvider(ObservationProvider):
+    def __init__(self, provider_name: str = "weatherbench2_era5", config=None):
+        super().__init__(
+            provider_name=provider_name,
+            source_units={"temperature": "kelvin", "rainfall": "m", "wind_speed": "m/s"},
+            config=config,
+        )
+    def fetch_observations(self, start_time=None, end_time=None, variables=None, region=None, file_path=None):
+        if file_path:
+            return self.load_from_file(file_path)
+        raise ValueError("WeatherBench2ObservationProvider requires a file_path or pre-ingested parquet.")
+
+
 __all__ = [
     "ForecastProvider",
     "ObservationProvider",
@@ -114,4 +144,6 @@ __all__ = [
     "ERA5Provider",
     "StationProvider",
     "GenericObservationProvider",
+    "WeatherBench2ForecastProvider",
+    "WeatherBench2ObservationProvider",
 ]

@@ -23,11 +23,11 @@ def test_data_mode_environment_override(monkeypatch):
 
 
 def test_validate_real_dataset_script_cli():
-    obs_file = Path("data/samples/sample_observations.csv")
+    obs_file = Path("ML/data/samples/sample_observations.csv")
     assert obs_file.exists()
 
     result = subprocess.run(
-        [sys.executable, "scripts/validate_real_dataset.py", "--input", str(obs_file)],
+        [sys.executable, "ML/scripts/validate_real_dataset.py", "--input", str(obs_file)],
         capture_output=True,
         text=True,
     )
@@ -38,14 +38,14 @@ def test_validate_real_dataset_script_cli():
 
 
 def test_build_verification_dataset_script_cli(tmp_path: Path):
-    obs_file = Path("data/samples/sample_observations.csv")
-    fcs_file = Path("data/samples/sample_all_forecasts.csv")
+    obs_file = Path("ML/data/samples/sample_observations.csv")
+    fcs_file = Path("ML/data/samples/sample_all_forecasts.csv")
     out_file = tmp_path / "test_verification.parquet"
 
     result = subprocess.run(
         [
             sys.executable,
-            "scripts/build_verification_dataset.py",
+            "ML/scripts/build_verification_dataset.py",
             "--forecast", str(fcs_file),
             "--observations", str(obs_file),
             "--output", str(out_file),

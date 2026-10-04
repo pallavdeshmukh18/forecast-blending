@@ -216,10 +216,15 @@ class RidgeBlender(BaseBlender):
         self.is_fitted = True
         return self
 
-    def fit(self, historical_forecasts: pd.DataFrame, historical_observations: pd.DataFrame) -> "RidgeBlender":
+    def fit(self, historical_forecasts: pd.DataFrame, historical_observations: Optional[pd.DataFrame] = None) -> "RidgeBlender":
         """
         Align historical multi-model forecasts with observations, then train Ridge blenders.
+        If historical_observations is None and historical_forecasts contains observed_value,
+        fits directly from verification DataFrame.
         """
+        if historical_observations is None:
+            return self.fit_verification_data(historical_forecasts)
+
         verified = match_forecasts_to_observations(
             forecasts_df=historical_forecasts,
             observations_df=historical_observations,

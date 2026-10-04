@@ -51,7 +51,7 @@ def run_phase6_final_experiment() -> None:
     set_global_seed(seed)
     cfg = get_config()
 
-    reports_dir = Path("reports")
+    reports_dir = ROOT_DIR / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     # 2. Ingest Multi-Model Verification Dataset
@@ -441,7 +441,7 @@ def run_phase6_final_experiment() -> None:
         test_period="2026-01-26 to 2026-01-30",
         extra_params={"models_benchmarked": len(results_table)},
     )
-    with open(Path("configs/experiments/final_experiment_config.yaml"), "w", encoding="utf-8") as f:
+    with open(ROOT_DIR / "configs/experiments/final_experiment_config.yaml", "w", encoding="utf-8") as f:
         yaml.dump(exp_meta, f, default_flow_style=False)
 
     print("\n[Step 6/6] Writing Final Research Report: reports/final_project_report.md...")

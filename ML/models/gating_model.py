@@ -301,8 +301,10 @@ class WeatherRegimeGatingNetwork(BaseBlender):
         self.is_fitted = True
         return self
 
-    def fit(self, historical_forecasts: pd.DataFrame, historical_observations: pd.DataFrame) -> "WeatherRegimeGatingNetwork":
+    def fit(self, historical_forecasts: pd.DataFrame, historical_observations: Optional[pd.DataFrame] = None) -> "WeatherRegimeGatingNetwork":
         """Align forecasts and observations, then train neural gating network."""
+        if historical_observations is None:
+            return self.fit_verification_data(historical_forecasts)
         verified = match_forecasts_to_observations(historical_forecasts, historical_observations, config=self.config)
         return self.fit_verification_data(verified)
 

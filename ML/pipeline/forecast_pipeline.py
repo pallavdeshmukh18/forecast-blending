@@ -79,9 +79,15 @@ class ForecastPipelineOrchestrator:
                 gen = SyntheticDataGenerator(config=self.config)
                 o_df, f_df = gen.generate(save_to_disk=False)
             elif mode in ["historical", "real"]:
-                f_path = Path(self.config.data.real_forecasts_path or "data/forecasts/synthetic_forecasts.parquet")
-                o_path = Path(self.config.data.real_observations_path or "data/processed/synthetic_observations.parquet")
+                f_path = Path(self.config.data.real_forecasts_path or "data/processed/real/weatherbench2/real_forecasts.parquet")
+                o_path = Path(self.config.data.real_observations_path or "data/processed/real/weatherbench2/real_observations.parquet")
                 if not f_path.exists() or not o_path.exists():
+                    if mode == "real":
+                        raise FileNotFoundError(
+                            f"Real data files not found (forecasts: {f_path}, observations: {o_path}). "
+                            "Real mode requires real WeatherBench 2 data. "
+                            "Please run 'python ML/scripts/ingest_weatherbench2.py' first."
+                        )
                     gen = SyntheticDataGenerator(config=self.config)
                     o_df, f_df = gen.generate(save_to_disk=False)
                     diagnostics["fallback_to_synthetic"] = True
