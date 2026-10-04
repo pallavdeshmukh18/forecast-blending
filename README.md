@@ -278,16 +278,11 @@ forecast-blending/
 ├── pipeline/
 │   └── forecast_pipeline.py        # Central operational pipeline orchestrator
 ├── reports/
-│   ├── final_project_report.md     # Comprehensive 22-section research report
-│   ├── final_model_comparison.csv  # 14-model benchmark results
+│   ├── final_research_report.md    # Comprehensive 25-section research report
+│   ├── final_model_comparison.csv  # Audited benchmark comparison results
 │   ├── final_probability_metrics.csv # Extreme contingency & calibration metrics
-│   ├── data_provenance.json        # Dataset provenance metadata
-│   └── data_quality.json           # Data quality control report
-├── scripts/
-│   ├── run_phase6_final_experiment.py # Final 14-model benchmark runner
-│   ├── build_verification_dataset.py  # Verification dataset builder
-│   └── validate_real_dataset.py       # Dataset QC validator
-├── tests/                          # 199 automated unit & integration tests
+│   └── provenance_manifest.json    # Dataset and model provenance metadata
+├── tests/                          # 264 automated unit & integration tests
 ├── requirements.txt
 └── README.md
 ```
@@ -321,16 +316,90 @@ pip install -r requirements.txt
 
 ---
 
-## 10. Quickstart & Execution Guide
+## 10. Real-Time Operational Forecasting (Live Mode)
 
-### 1. Run Complete Test Suite (199 Tests)
+SkyCast provides an operational live-data inference layer built around the validated research forecasting and blending framework.
+
+### 10.1 Live Data Provider
+* **Provider**: Open-Meteo Weather Forecast API (free, open-access, zero credentials required).
+* **Endpoint**: `https://api.open-meteo.com/v1/forecast`
+* **Data Resolution**: ~0.1° spatial resolution hourly surface analysis & multi-day numerical model forecasts.
+
+### 10.2 Variables & Normalization
+All live variables are strictly converted and validated in UTC:
+* **2m Temperature**: Normalized to **°C** (supports Kelvin and Fahrenheit conversions).
+* **10m Wind Speed**: Normalized to **m/s** (supports km/h, knots, mph, and u/v vector magnitude $\sqrt{u_{10}^2 + v_{10}^2}$).
+* **Precipitation**: Ingests hourly precipitation and aggregates rolling 6-hour accumulation windows ($\text{mm} / 6\text{h}$) to match the meteorological evaluation standard.
+
+### 10.3 Forecast Horizons & Supported Lead Times
+* Operational Horizons: **+6h, +12h, +24h, +48h, +72h**.
+
+### 10.4 Refresh Frequency & Bounded Caching
+* **Periodic Refresh**: Automatically fetched and refreshed every **15 minutes** (configurable via `LIVE_REFRESH_MINUTES`).
+* **Disk Cache**: Stored in `ML/data/live_cache/live_payload_YYYYMMDD_HHMMSS.json`. Bounded to the newest 24 files with automatic FIFO pruning. Completely isolated from research benchmark datasets.
+
+### 10.5 Data Freshness & Staleness Detection
+Every operational payload records `retrieved_at` in UTC and computes data age in minutes:
+* **🟢 LIVE / FRESH**: Data age $< 60$ minutes.
+* **🟡 STALE**: Data age between $60$ and $180$ minutes.
+* **🔴 EXPIRED / UNAVAILABLE**: Data age $> 180$ minutes.
+
+### 10.6 Operational Fallback Hierarchy
+In production environments, weather data availability can vary. SkyCast implements a deterministic, fail-safe fallback hierarchy:
+```text
+LIVE OPERATIONAL DATA FETCH
+       ↓ (if successful)
+Adaptive SkyCast Blending & EMOS Calibration
+       ↓ (if provider fails / times out)
+Latest Fresh Local Disk Cache Hit
+       ↓ (if fresh cache unavailable)
+Stale Cache Fallback (Clearly labeled as STALE in UI)
+       ↓ (if cache missing or expired)
+Explicit Offline / Unavailable Result State (Never substitutes historical benchmark data)
+```
+
+### 10.7 Research Mode vs. Live Mode (Strict Separation)
+| Aspect | Research Benchmark Mode | Live Operational Mode |
+| :--- | :--- | :--- |
+| **Data Source** | WeatherBench 2 (ECMWF HRES, GraphCast v2, ERA5) | Open-Meteo Operational Forecast & Analysis |
+| **Time Period** | Historical 2020–2023 Multi-Year Split | Real-time / Latest UTC Timestamps |
+| **Verification** | Reanalysis verification with ERA5 Ground Truth | Real-time observation updates |
+| **Model Scope** | 14 Research Blending Formulations | Adaptive Blending & EMOS Calibrated Ensembles |
+| **Scientific Role** | Statistically audited multi-year benchmark | Operational deployment inference gateway |
+
+### 10.8 Critical Scientific Disclaimers
+> **IMPORTANT NOTE**:
+> The WeatherBench 2 benchmark is a historical scientific evaluation and is not itself a real-time data feed.
+> 
+> Operational live forecasts are not automatically equivalent to the research benchmark and should not be interpreted as independently validated operational forecasting skill.
+> 
+> GraphCast v2 and ECMWF HRES research models evaluated in the scientific benchmark require WeatherBench 2 specific multi-level spatial grids and are not claimed to run in the unauthenticated single-point live feed.
+
+### 10.9 How to Start Live Mode
 ```bash
-python -m pytest -q
+# 1. Start FastAPI backend with live operational router enabled
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 2. Run live smoke test
+python ML/scripts/live_smoke_test.py
+
+# 3. Start React Frontend Dashboard
+cd frontend
+npm run dev
+```
+
+---
+
+## 11. Quickstart & Execution Guide
+
+### 1. Run Complete Test Suite (264 Tests)
+```bash
+python -m pytest Backend/tests
 ```
 
 ### 2. Run Final Multi-Model Benchmark & Generate Reports
 ```bash
-python scripts/run_phase6_final_experiment.py
+python ML/scripts/run_phase6_final_experiment.py
 ```
 
 ### 3. Launch Operational FastAPI Backend
@@ -339,46 +408,59 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 API Documentation: `http://localhost:8000/docs`
 
-### 4. Launch Streamlit Verification Dashboard
+### 4. Launch React Frontend Dashboard
 ```bash
-streamlit run dashboard/app.py
+cd frontend
+npm run dev
 ```
-Dashboard URL: `http://localhost:8501`
+Dashboard URL: `http://localhost:5173`
 
 ---
 
-## 11. FastAPI Endpoints & API Reference
+## 12. FastAPI Endpoints & API Reference
 
+### 12.1 Live Operational Endpoints
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/api/live/status` | `GET` | Operational connection status, active provider, data freshness, and data age |
+| `/api/live/current` | `GET` | Current surface meteorological conditions (Temp, Wind, Rain, Humidity, Pressure) |
+| `/api/live/forecast` | `GET` | Multi-horizon operational forecast (+6h to +72h) with adaptive blending & EMOS 90% CI |
+| `/api/live/alerts` | `GET` | Active extreme weather alerts (Heavy rain $\ge 15\text{mm}$, Extreme rain $\ge 35\text{mm}$, Gale wind $\ge 17.2\text{m/s}$, Heatwave $\ge 40^\circ\text{C}$) |
+| `/api/live/disagreement`| `GET` | Multi-model disagreement diagnostics across operational forecast members |
+| `/api/live/metadata` | `GET` | Live layer configuration, variables, horizons, and scientific boundaries |
+
+### 12.2 Research & Evaluation Endpoints
 | Endpoint | Method | Description |
 | :--- | :---: | :--- |
 | `/health` | `GET` | Service status and version check |
-| `/metadata` | `GET` | Project metadata, available models, variables, lead times, and regimes |
-| `/forecast/run` | `POST` | Central end-to-end forecast pipeline returning structured `ForecastResult` |
-| `/forecast/blend` | `POST` | Dynamic multi-model blend for ad-hoc forecast arrays |
-| `/forecast/probability` | `POST` | Calibrated quantiles, spread, and predictive distributions |
-| `/forecast/extremes` | `POST` | Grid-cell extreme exceedance probabilities (Zero-Inflated Gamma EMOS) |
-| `/verify` | `POST` | Forecast verification and paired error metric evaluation |
-| `/models` | `GET` | Specifications of available NWP and AI members |
-| `/models/weights` | `GET` | Active dynamic model weights |
-| `/regimes` | `GET` | Weather regime classification definitions |
-| `/diagnostics` | `GET` | Quality control reports and pipeline health |
-| `/metrics` | `GET` | Verification error scores across models |
+| `/config` | `GET` | System configuration parameters and spatial/temporal definitions |
+| `/synthetic/generate` | `POST` | Deterministic synthetic observations and forecasts |
+| `/blend/baseline` | `POST` | Equal-weight multi-model blending |
+| `/blending/weights` | `GET` | Dynamically computed model blending weights |
+| `/blending/forecast`| `POST` | Skill-weighted adaptive blended forecast |
+| `/blending/comparison`| `GET` | Walk-forward validation comparison results |
+| `/regimes/classify` | `POST` | Rule-based and KMeans weather regime classification |
+| `/evaluation/phase4-benchmark` | `GET` | Multi-model benchmark across all candidate blenders |
+| `/spatial/grid` | `GET` | Standardized 2D spatial grid metadata |
+| `/spatial/disagreement` | `GET` | 2D spatial model disagreement fields |
 
 ---
 
-## 12. Automated Testing & Validation
+## 13. Automated Testing & Validation
 
-The test suite contains **199 automated tests** covering 100% of data pipelines, spatial models, temporal gating, calibration, and backend APIs:
+The test suite contains **264 automated tests** covering 100% of data pipelines, spatial models, temporal gating, calibration, live ingestion, staleness detection, and backend APIs:
 
 ```bash
-python -m pytest -v
+python -m pytest Backend/tests -v
 ```
 
 ### Coverage Highlights:
+* `test_live_operational_pipeline.py`: Real-time ingestion, UTC parsing, physical bounds validation, bounded disk cache pruning, staleness evaluation, extreme alert detection, fallback hierarchy, and research isolation.
+* `test_real_benchmark_execution.py` & `test_phase6_final_results.py`: Bit-for-bit synthetic baseline verification (`54cb659a...`) and audited WeatherBench 2 metrics.
 * `test_real_pipeline.py`: Provider-neutral data ingestion, NetCDF, GRIB2, Parquet, and CSV readers.
 * `test_extreme_calibration.py`: Gamma EMOS, Zero-Inflated Gamma calibration, GEV tail fitting, sample size safeguards.
 * `test_temporal_encoder.py` & `test_spatiotemporal_gating.py`: ConvGRU recurrent memory and convex spatial weights $W_m \ge 0, \sum W_m = 1$.
 * `test_final_leakage.py`: Temporal isolation tests verifying historical weights remain invariant to future test observation perturbations.
 * `test_robustness.py`: Missing model renormalization, corrupted model downweighting, missing observation safety.
 * `test_pipeline_orchestrator.py`: End-to-end `ForecastPipelineOrchestrator` execution.
-* `test_api_final.py`: Full endpoint contract testing for FastAPI service.
+* `test_api.py` & `test_api_final.py`: Full endpoint contract testing for FastAPI service.
