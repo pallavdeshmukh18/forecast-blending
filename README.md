@@ -1,7 +1,7 @@
 # Hybrid AI–NWP Multi-Model Forecast Blending System
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/pytest-199%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/pytest-245%20passed-brightgreen.svg)]()
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
@@ -19,11 +19,12 @@ A scientifically rigorous meteorological framework designed to dynamically blend
 5. [Atmospheric Regime Detection & Adaptive Blending](#5-atmospheric-regime-detection--adaptive-blending)
 6. [Spatial CNN & Spatio-Temporal ConvGRU Memory](#6-spatial-cnn--spatio-temporal-convgru-memory)
 7. [Probabilistic Forecasting & Extreme Calibration](#7-probabilistic-forecasting--extreme-calibration)
-8. [Repository Structure](#8-repository-structure)
-9. [Installation & Setup](#9-installation--setup)
-10. [Quickstart & Execution Guide](#10-quickstart--execution-guide)
-11. [FastAPI Endpoints & API Reference](#11-fastapi-endpoints--api-reference)
-12. [Automated Testing & Validation](#12-automated-testing--validation)
+8. [Scientific Benchmark Results (WeatherBench 2 Audit)](#8-scientific-benchmark-results-weatherbench-2-audit)
+9. [Repository Structure](#9-repository-structure)
+10. [Installation & Setup](#10-installation--setup)
+11. [Quickstart & Execution Guide](#11-quickstart--execution-guide)
+12. [FastAPI Endpoints & API Reference](#12-fastapi-endpoints--api-reference)
+13. [Automated Testing & Validation](#13-automated-testing--validation)
 
 ---
 
@@ -208,7 +209,23 @@ Generalized Extreme Value upper-tail modeling for severe weather return periods 
 
 ---
 
-## 8. Repository Structure
+## 8. Scientific Benchmark Results (WeatherBench 2 Audit)
+
+The system was evaluated on the standardized **WeatherBench 2** conservative reanalysis archive (1.5° grid, South Asia domain: 10.5°N–30.0°N, 70.5°E–90.0°E, 2020 record) across 14 candidate multi-model blending and probabilistic calibration methodologies. The benchmark passed an independent scientific integrity audit (`PASS_WITH_LIMITATIONS`, zero test leakage, genuine model execution).
+
+### 8.1 Key Scientific Findings
+1. **Dominant Model Disparity**: Google DeepMind GraphCast v2 substantially outperforms ECMWF HRES across all three variables in South Asia (47.0% lower Temp MAE, 20.7% lower Wind MAE, 45.9% lower Rain MAE).
+2. **Conditional Blending Optimization**: Equal-weight averaging ($0.5/0.5$) degrades skill relative to GraphCast alone when constituent errors differ widely. Adaptive skill blending (Inverse-Variance, Ridge) recovers single-model accuracy by dynamically allocating 73–81% weight to GraphCast.
+3. **Statistically Established Temperature Gain**: Spatio-Temporal ConvGRU achieves the lowest overall 2m Temperature RMSE (**0.6760 °C** vs GraphCast 0.6856 °C), establishing a statistically significant ~1.4% relative error reduction under paired block-bootstrap testing ($p = 0.0001, 95\%\text{ CI } [+0.0043, +0.0056]^\circ\text{C}$).
+4. **Wind Speed Multi-Model Synergy**: For 10m wind speed where model skills are comparable, Spatial CNN achieves the lowest numerical MAE (**0.3043 m/s** vs GraphCast 0.3413 m/s), although differences among top blends are not statistically significant ($p = 0.714$).
+5. **Probabilistic Uncertainty Calibration**: Gaussian EMOS and Zero-Inflated Gamma EMOS deliver calibrated prediction intervals ($\text{PICP}_{90} \approx 89.7\%$, Rain Brier score $0.0382$).
+6. **Error Diagnostics via Model Disagreement**: Physical-AI forecast disagreement $|F_{\text{HRES}} - F_{\text{GC}}|$ exhibits a robust positive association with forecast error ($r = 0.5310$ on rainfall, $r = 0.4498$ on temperature).
+
+For the full 25-section report, cryptographic manifests, and complete tables, see [`ML/reports/final_research_report.md`](file:///c:/Users/Vedansh/forecast-blending/ML/reports/final_research_report.md).
+
+---
+
+## 9. Repository Structure
 
 ```text
 forecast-blending/

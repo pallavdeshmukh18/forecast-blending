@@ -42,3 +42,10 @@ test_*.html
 Thumbs.db
 .vscode/
 .idea/
+
+# WeatherBench Raw & Processed Datasets (keep provenance and small summaries)
+ML/data/raw/weatherbench2/
+ML/data/processed/real/weatherbench2/
+data/raw/weatherbench2/
+data/processed/real/weatherbench2/
+
