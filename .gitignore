@@ -49,3 +49,7 @@ ML/data/processed/real/weatherbench2/
 data/raw/weatherbench2/
 data/processed/real/weatherbench2/
 
+# Internal documentation and audits
+docs/
+
+
