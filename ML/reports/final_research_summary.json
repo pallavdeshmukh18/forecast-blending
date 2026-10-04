@@ -1,0 +1,61 @@
+{
+  "project": "Hybrid AI\u2013NWP Multi-Model Forecast Blending System",
+  "dataset": "WeatherBench 2",
+  "domain": "South Asia",
+  "evaluation_period": "2020",
+  "models": [
+    "ECMWF HRES",
+    "GraphCast v2"
+  ],
+  "variables": [
+    "temperature",
+    "wind_speed",
+    "rainfall"
+  ],
+  "methods_evaluated": 14,
+  "tests_passed": 238,
+  "scientific_audit_status": "PASS_WITH_LIMITATIONS",
+  "key_findings": [
+    "GraphCast v2 substantially outperforms ECMWF HRES across all 3 variables in South Asia (47.0% lower Temp MAE, 20.7% lower Wind MAE, 45.9% lower Rain MAE).",
+    "Equal weighting (0.5/0.5) degrades forecast accuracy relative to GraphCast v2 alone when constituent error disparity is large.",
+    "Adaptive skill blending (Inverse-Variance, Ridge) successfully recovers single-model accuracy by dynamically shifting 73-81% weight to GraphCast v2.",
+    "Neural Gating converged to routing ~100% weight to GraphCast v2 due to unconstrained MSE optimization, reproducing the dominant expert.",
+    "Spatio-Temporal ConvGRU achieves the lowest overall 2m Temperature RMSE (0.6760 \u00b0C vs GraphCast 0.6856 \u00b0C), establishing a statistically significant ~1.4% improvement (p = 0.0001).",
+    "Spatial CNN achieves the lowest numerical 10m Wind MAE (0.3043 m/s), though differences among top blending methods are statistically equivalent (p = 0.714).",
+    "Gaussian EMOS and Zero-Inflated Gamma EMOS deliver calibrated probabilistic intervals (PICP90 \u2248 89.7%, Rain Brier score 0.0382).",
+    "Forecast disagreement |HRES - GraphCast| reliably correlates with forecast error (r = 0.5310 on rain, r = 0.4498 on temp)."
+  ],
+  "statistically_established_improvements": [
+    {
+      "variable": "2m Temperature",
+      "comparison": "Spatio-Temporal ConvGRU vs GraphCast v2",
+      "metric": "RMSE",
+      "baseline_value": 0.6856,
+      "blended_value": 0.676,
+      "relative_improvement_pct": 1.4,
+      "p_value": 0.0001,
+      "status": "STATISTICALLY_SIGNIFICANT"
+    }
+  ],
+  "limitations": [
+    "single evaluation year",
+    "limited South Asia domain",
+    "14x14 local grid",
+    "two primary forecast models",
+    "limited model diversity",
+    "finite extreme-event sample",
+    "meteorological autocorrelation",
+    "exploratory multiple comparisons",
+    "neural gating dominant-expert collapse",
+    "limited evidence for universal generalization"
+  ],
+  "reproducibility": {
+    "status": "PASS",
+    "bit_for_bit_verified": true,
+    "manifest_verified": true
+  },
+  "synthetic_baseline": {
+    "status": "UNCHANGED",
+    "sha256": "54cb659a7d8e86f0014114e616d2ecbf834d574b877b8db69326e6440c8223fd"
+  }
+}
