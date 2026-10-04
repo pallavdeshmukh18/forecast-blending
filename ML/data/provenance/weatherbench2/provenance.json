@@ -1,0 +1,58 @@
+{
+  "source": "WeatherBench 2 Benchmark (GCP gs://weatherbench2/)",
+  "era5_source": "gs://weatherbench2/datasets/era5/1959-2022-6h-240x121_equiangular_with_poles_conservative.zarr",
+  "hres_source": "gs://weatherbench2/datasets/hres/2016-2022-0012-240x121_equiangular_with_poles_conservative.zarr",
+  "graphcast_source": "gs://weatherbench2/datasets/graphcast_v2/2020-240x121_equiangular_with_poles_conservative.zarr",
+  "pangu_source": "gs://weatherbench2/datasets/pangu/2018-2022_0012_240x121_equiangular_with_poles_conservative.zarr",
+  "retrieval_date": "2026-10-03T15:54:13.242958+00:00",
+  "dataset_version": "1.5_deg_equiangular_with_poles_conservative",
+  "variables": [
+    "temperature",
+    "wind_speed",
+    "rainfall"
+  ],
+  "forecast_models": [
+    "ecmwf_hres",
+    "graphcast"
+  ],
+  "temporal_coverage": {
+    "start": "2020-01-01",
+    "end": "2020-01-03",
+    "time_step_hours": 6
+  },
+  "spatial_coverage": {
+    "lat_min": 10.0,
+    "lat_max": 30.0,
+    "lon_min": 70.0,
+    "lon_max": 90.0,
+    "grid_step": 1.5
+  },
+  "resolution": "1.5_deg_equiangular",
+  "units": {
+    "temperature": "Celsius (\u00b0C)",
+    "rainfall": "millimeters (mm)",
+    "wind_speed": "m/s"
+  },
+  "transformations": [
+    "Kelvin to Celsius temperature conversion",
+    "Meters to mm 6-hour precipitation accumulation scaling",
+    "Wind speed component vector magnitude derivation when applicable",
+    "Longitude normalization to standard [-180, 180] degrees",
+    "Canonical valid verification timestamp calculation (run_time + lead_time)"
+  ],
+  "interpolation": "Direct native 1.5\u00b0 equiangular grid alignment (identical spatial mesh across ERA5, HRES, and GraphCast)",
+  "filtering": "Physical bound validation and NaN elimination via apply_quality_control",
+  "missing_value_handling": "Records containing NaNs/Infs flagged and filtered out; no synthetic imputation applied",
+  "software_environment": {
+    "python": "3.13.7",
+    "xarray": "2026.7.0",
+    "pandas": "2.3.3",
+    "numpy": "2.4.4"
+  },
+  "qc_summary": {
+    "forecast_valid": 42336,
+    "forecast_flagged": 0,
+    "observation_valid": 7056,
+    "observation_flagged": 0
+  }
+}

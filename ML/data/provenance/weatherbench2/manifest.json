@@ -1,0 +1,90 @@
+{
+  "dataset": "WeatherBench 2",
+  "source": "Google Cloud Storage (gs://weatherbench2/datasets/)",
+  "dataset_version": "1.5_deg_equiangular_with_poles_conservative",
+  "download_timestamp": "2026-10-03T15:54:13.241598+00:00",
+  "variables": [
+    "temperature",
+    "wind_speed",
+    "rainfall"
+  ],
+  "forecast_models": [
+    "ecmwf_hres",
+    "graphcast"
+  ],
+  "start_date": "2020-01-01",
+  "end_date": "2020-01-03",
+  "region": {
+    "lat_min": 10.0,
+    "lat_max": 30.0,
+    "lon_min": 70.0,
+    "lon_max": 90.0,
+    "description": "South Asia / Indian Subcontinent Domain"
+  },
+  "resolution": "1.5_deg_equiangular",
+  "lead_times_hours": [
+    6,
+    12,
+    24,
+    48
+  ],
+  "records_summary": {
+    "raw_forecast_records": 42336,
+    "raw_observation_records": 7056,
+    "valid_forecast_records": 42336,
+    "valid_observation_records": 7056,
+    "matched_pairs": 29400,
+    "unmatched_forecasts": 12936
+  },
+  "files": {
+    "raw_forecasts": "ML\\data\\raw\\weatherbench2\\weatherbench2_forecasts_raw.parquet",
+    "raw_observations": "ML\\data\\raw\\weatherbench2\\weatherbench2_observations_raw.parquet",
+    "processed_forecasts": "ML\\data\\processed\\real\\weatherbench2\\real_forecasts.parquet",
+    "processed_observations": "ML\\data\\processed\\real\\weatherbench2\\real_observations.parquet",
+    "verification_dataset": "ML\\data\\processed\\real\\weatherbench2\\real_verification_dataset.parquet"
+  },
+  "sha256": {
+    "raw_forecasts": "0b529aed2d944c156b096e71696c0d8a3b7c4bd8ea149d814aefc2f28912941b",
+    "raw_observations": "35dca80a92a8b5225a81743708d5facf426632ea7cf3b66f950d988d01e1b96b",
+    "processed_forecasts": "c4284c7281eeb621fdd7561ae8288f829ae9e6908dfda1f6dea91c3472622bf9",
+    "processed_observations": "aa675f489d68a54f12b6824cd42b0e949e7099301529faa0c70b01dab28f27fc",
+    "verification_dataset": "001bd05e2b6b0b1f9e444a02cc533aa0ea31a35c047d6818d9900078cf5ce751"
+  },
+  "software_environment": {
+    "python": "3.13.7",
+    "xarray": "2026.7.0",
+    "pandas": "2.3.3",
+    "numpy": "2.4.4",
+    "gcsfs": "2026.10.0"
+  },
+  "transformations": [
+    {
+      "variable": "temperature",
+      "from": "Kelvin (K)",
+      "to": "Celsius (\u00b0C)",
+      "formula": "T_C = T_K - 273.15"
+    },
+    {
+      "variable": "rainfall",
+      "from": "meters (m)",
+      "to": "millimeters (mm)",
+      "formula": "P_mm = P_m * 1000.0"
+    },
+    {
+      "variable": "wind_speed",
+      "from": "m/s or u10/v10",
+      "to": "m/s",
+      "formula": "ws = sqrt(u10^2 + v10^2) if u/v else si10"
+    },
+    {
+      "coordinate": "longitude",
+      "from": "[0, 360)",
+      "to": "[-180, 180]",
+      "formula": "((lon + 180) % 360) - 180"
+    },
+    {
+      "temporal": "valid_time",
+      "formula": "valid_time = run_time + lead_time"
+    }
+  ]
+}

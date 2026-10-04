@@ -1,0 +1,169 @@
+# Real-Data Benchmark Configuration for WeatherBench 2 (Prompt 4 Execution Plan)
+# Strictly Leakage-Safe, Chronologically Separated Benchmark Design
+
+dataset:
+  name: "weatherbench2"
+  mode: "real"
+  dataset_version: "1.5_deg_equiangular_with_poles_conservative"
+  source_endpoints:
+    era5: "gs://weatherbench2/datasets/era5/1959-2022-6h-240x121_equiangular_with_poles_conservative.zarr"
+    ecmwf_hres: "gs://weatherbench2/datasets/hres/2016-2022-0012-240x121_equiangular_with_poles_conservative.zarr"
+    graphcast_v2: "gs://weatherbench2/datasets/graphcast_v2/2020-240x121_equiangular_with_poles_conservative.zarr"
+    pangu: "gs://weatherbench2/datasets/pangu/2018-2022_0012_240x121_equiangular_with_poles_conservative.zarr"
+
+region:
+  lat_min: 10.0
+  lat_max: 30.0
+  lon_min: 70.0
+  lon_max: 90.0
+  grid_step_deg: 1.5
+  description: "South Asia / Indian Subcontinent Domain"
+
+variables:
+  - "temperature"
+  - "wind_speed"
+  - "rainfall"
+
+variable_units:
+  temperature: "celsius"
+  wind_speed: "m/s"
+  rainfall: "mm"
+
+models:
+  primary_set:
+    - "ecmwf_hres"
+    - "graphcast_v2"
+  optional_dry_set:
+    - "pangu"
+
+lead_times_hours:
+  evaluation_leads:
+    - 6
+    - 12
+    - 24
+    - 48
+    - 72
+    - 120
+  common_intersection:
+    - 6
+    - 12
+    - 24
+    - 48
+
+initialization_cycles_utc:
+  - 0
+  - 12
+
+# Chronological Split (No Shuffling, No Overlap, Strict Causality)
+split:
+  train:
+    start_date: "2020-01-01"
+    end_date: "2020-08-31"
+    description: "Training window (8 months, Winter + Pre-monsoon + Peak Monsoon)"
+  validation:
+    start_date: "2020-09-01"
+    end_date: "2020-10-15"
+    description: "Validation window (1.5 months, Late Monsoon / Transition)"
+  test:
+    start_date: "2020-10-16"
+    end_date: "2020-12-31"
+    description: "Out-of-sample Test window (2.5 months, Post-monsoon / Early Winter)"
+
+leakage_policy:
+  enforce_chronological_split: true
+  allow_random_shuffle: false
+  freeze_weights_for_test: true
+  fit_scalers_on_train_only: true
+  independent_spatial_slices: true
+
+regimes:
+  method: "rule_based"
+  thresholds_6hr:
+    heavy_rain_mm_6h: 15.0
+    convective_rain_mm_6h: 5.0
+    high_wind_mps: 10.0
+    hot_temperature_c: 35.0
+    cold_temperature_c: 5.0
+
+extreme_events:
+  rainfall_thresholds_mm_6h:
+    - 5.0   # Moderate rain
+    - 15.0  # Heavy rain
+    - 35.0  # Extreme rain
+  wind_thresholds_mps:
+    - 8.0
+    - 12.0
+    - 16.0
+  temperature_hot_thresholds_c:
+    - 35.0
+    - 38.0
+    - 40.0
+  temperature_cold_thresholds_c:
+    - 0.0
+    - 5.0
+
+method_eligibility:
+  temperature:
+    deterministic:
+      - "ecmwf_hres"
+      - "graphcast_v2"
+      - "equal_weight"
+      - "inverse_variance"
+      - "inverse_mae"
+      - "ridge"
+    adaptive:
+      - "regime_blender"
+      - "neural_gating"
+      - "spatial_inverse_variance"
+      - "spatial_cnn"
+      - "spatiotemporal_convgru"
+    probabilistic:
+      - "gaussian_emos"
+  wind_speed:
+    deterministic:
+      - "ecmwf_hres"
+      - "graphcast_v2"
+      - "equal_weight"
+      - "inverse_variance"
+      - "inverse_mae"
+      - "ridge"
+    adaptive:
+      - "regime_blender"
+      - "neural_gating"
+      - "spatial_inverse_variance"
+      - "spatial_cnn"
+      - "spatiotemporal_convgru"
+    probabilistic:
+      - "gaussian_emos"
+  rainfall:
+    deterministic:
+      - "ecmwf_hres"
+      - "graphcast_v2"
+      - "equal_weight"
+      - "inverse_variance"
+      - "inverse_mae"
+      - "ridge"
+    adaptive:
+      - "regime_blender"
+      - "neural_gating"
+      - "spatial_inverse_variance"
+      - "spatial_cnn"
+      - "spatiotemporal_convgru"
+    probabilistic:
+      - "zero_inflated_gamma_emos"
+      - "gamma_emos"
+
+metrics:
+  deterministic:
+    - "mae"
+    - "rmse"
+    - "bias"
+    - "correlation"
+  probabilistic:
+    - "crps"
+    - "crpss"
+    - "picp"
+    - "mpiw"
+    - "brier_score"
+
+seed: 42
