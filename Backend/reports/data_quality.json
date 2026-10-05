@@ -15,7 +15,7 @@
     "ai_model_c": 1053
   },
   "records_by_variable": {
-    "rainfall": 3159
+    "temperature": 3159
   },
   "records_by_lead_time": {
     "12": 3159

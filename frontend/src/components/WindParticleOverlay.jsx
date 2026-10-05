@@ -49,6 +49,10 @@ export default function WindParticleOverlay({ map, grid, layer, disagreementVar 
       engine = new WindParticleEngine(canvas, {
         getSize,
         unproject,
+        project: (lat, lng) => {
+          const point = map.latLngToContainerPoint([lat, lng]);
+          return [point.x, point.y];
+        },
         sampleWind: createWindSampler(grid),
       });
       draw = () => {

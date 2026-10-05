@@ -13,7 +13,9 @@ import {
   Server,
   Layers,
   ArrowLeft,
-  Map
+  Map,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import Overview from './Overview';
 import ForecastExplorer from './forecast/ForecastExplorer';
@@ -57,6 +59,8 @@ export default function Dashboard({ user, onLogout }) {
     }
     return 'weather-map';
   });
+
+  const [navCollapsed, setNavCollapsed] = useState(true);
 
   const mainNavItems = [
     { id: 'weather-map', label: 'Weather Map', icon: Map, disabled: false },
@@ -109,9 +113,13 @@ export default function Dashboard({ user, onLogout }) {
       </header>
 
       {/* Main Workspace Layout */}
-      <div className="dashboard-workspace">
+      <div className={`dashboard-workspace dashboard-collapsible ${navCollapsed ? 'nav-collapsed' : ''} ${selectedTab === 'weather-map' ? 'map-workspace' : ''}`}>
         {/* Sidebar Prepared for Full Lifecycle */}
-        <aside className="dashboard-sidebar">
+        <aside className="dashboard-sidebar" aria-label="Main navigation">
+          <button className="sidebar-collapse" onClick={() => setNavCollapsed(value => !value)} aria-expanded={!navCollapsed} aria-label={navCollapsed ? 'Expand navigation' : 'Collapse navigation'} title={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}>
+            {navCollapsed ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}
+            {!navCollapsed && <span>Navigation</span>}
+          </button>
           <div className="sidebar-group-title">METEOROLOGICAL INTELLIGENCE</div>
           <div className="sidebar-nav-group">
             {mainNavItems.map((item) => {
@@ -121,6 +129,8 @@ export default function Dashboard({ user, onLogout }) {
                 <button
                   key={item.id}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''} ${item.disabled ? 'is-placeholder' : ''}`}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => setSelectedTab(item.id)}
                   title={item.disabled ? `${item.label} (Scheduled for next release)` : item.label}
                 >
@@ -143,6 +153,8 @@ export default function Dashboard({ user, onLogout }) {
                 <button
                   key={item.id}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''} ${item.disabled ? 'is-placeholder' : ''}`}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => setSelectedTab(item.id)}
                   title={item.disabled ? `${item.label} (Scheduled for next release)` : item.label}
                 >

@@ -2,11 +2,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
-import { AlertTriangle, BarChart3, Check, Download, ExternalLink, ChevronDown, CloudRain, Cloudy, Crosshair, Droplets, Gauge, Layers3, LocateFixed, Menu, Minus, Pause, Play, Plus, Search, Settings2, Sparkles, ThermometerSun, Upload, Wind, X } from 'lucide-react'
+import { AlertTriangle, BarChart3, Check, Download, ExternalLink, ChevronDown, CloudRain, Cloudy, Crosshair, Droplets, Gauge, Layers3, LocateFixed, Menu, Minus, Pause, Play, Plus, Search, Settings2, Sparkles, ThermometerSun, Upload, Wind, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cities, cityLayerValue, modelWeights, variables, weatherGeoJSON } from '../../data'
 import { changeGeoJSON, forecastToGeoJSON, getHealth, runForecast, variableForLayer } from '../../weatherMapApi'
 import { apiClient, getBlendingWeights, getLiveForecast, getLiveMetadata, getLiveStatus, getLiveWindGrid } from '../../api'
 import { WindParticleEngine, createWindSampler } from '../../windField'
+import './map-page.css'
 
 const rasterPaint={'raster-fade-duration':0}
 const BASEMAPS={
@@ -55,14 +56,13 @@ const MAIN_MODELS=[
   {id:'equal_weight',label:'Equal weight',weights:null,hint:'Arithmetic mean of all models'}
 ]
 const ADVANCED_MODELS=[
-  {id:'spatial_gating',label:'🧠 Spatial CNN Encoder',weights:'neural_gating',hint:'Spatial feature gating'},
-  {id:'spatiotemporal_gating',label:'⏱️ Spatio-Temporal ConvGRU',weights:'neural_gating',hint:'Temporal recurrence over lead times'},
-  {id:'adaptive_blending',label:'📐 Constrained Simplex Ridge',weights:'ridge_constrained',hint:'Ridge regression on the weight simplex'},
-  {id:'emos_gaussian',label:'📊 Gaussian EMOS',weights:'regime_inverse_variance',hint:'Gaussian predictive calibration'},
-  {id:'emos_gamma',label:'🌧️ Zero-Inflated Gamma Calibration',weights:'regime_inverse_variance',hint:'Rainfall calibration with dry-day mass'}
+  {id:'spatial_gating',label:'Spatial model',weights:'neural_gating',hint:'Spatial feature gating'},
+  {id:'spatiotemporal_gating',label:'Spatial and temporal model',weights:'neural_gating',hint:'Temporal recurrence over lead times'},
+  {id:'adaptive_blending',label:'Adaptive blend',weights:'ridge_constrained',hint:'Ridge regression on the weight simplex'},
+  {id:'emos_gaussian',label:'Temperature calibration',weights:'regime_inverse_variance',hint:'Gaussian predictive calibration'},
+  {id:'emos_gamma',label:'Rainfall calibration',weights:'regime_inverse_variance',hint:'Rainfall calibration with dry-day mass'}
 ]
 const MODEL_INDEX=Object.fromEntries([...MAIN_MODELS,...ADVANCED_MODELS].map(m=>[m.id,m]))
-const isAdvanced=id=>ADVANCED_MODELS.some(m=>m.id===id)
 
 const MODEL_NAMES={ai_graphcast_ensemble:'GraphCast v2',ecmwf_ifs:'ECMWF HRES',gfs_seamless:'GFS / Baseline',ai_model_c:'GraphCast (AI)',nwp_model_a:'NWP-A',nwp_model_b:'NWP-B'}
 const MODEL_COLORS=['#4b9cff','#3cd1a0','#ff9e4a','#ac72f4']
@@ -101,7 +101,10 @@ function WeatherMap({layer,setSelected,selected,mapRef,fieldGeoJSON,overlayOpaci
     map.on('click','cities',e=>{const city=cities.find(c=>c.name===e.features?.[0]?.properties?.name);if(city)setSelected(city)})
     map.on('mouseenter','cities',()=>map.getCanvas().style.cursor='pointer')
     map.on('mouseleave','cities',()=>map.getCanvas().style.cursor='')
-    return()=>map.remove()
+    // Sidebars and toolbar rows change the map's actual container dimensions.
+    const observer = new ResizeObserver(() => map.resize())
+    observer.observe(node.current)
+    return()=>{observer.disconnect();map.remove()}
   },[])
   useEffect(()=>{
     const map=mapRef.current
@@ -144,34 +147,37 @@ function LiveWindParticles({enabled,grid,mapRef}){
   useEffect(()=>{
     const map=mapRef.current,canvas=canvasRef.current
     if(!enabled||!map||!grid)return
-    const engine=new WindParticleEngine(canvas,{getSize:()=>({w:innerWidth,h:innerHeight}),unproject:(x,y)=>{const p=map.unproject([x,y]);return[p.lat,p.lng]},sampleWind:createWindSampler(grid)})
+    const engine=new WindParticleEngine(canvas,{getSize:()=>({w:map.getContainer().clientWidth,h:map.getContainer().clientHeight}),project:(lat,lng)=>{const p=map.project([lng,lat]);return[p.x,p.y]},unproject:(x,y)=>{const p=map.unproject([x,y]);return[p.lat,p.lng]},sampleWind:createWindSampler(grid)})
     const restart=()=>{engine.stop();engine.resize();engine.start()}
     const pause=()=>{engine.stop();engine.clear()}
-    map.on('movestart',pause);map.on('moveend',restart);addEventListener('resize',restart)
+    map.on('movestart',pause);map.on('moveend',restart);map.on('resize',restart)
     restart()
-    return()=>{map.off('movestart',pause);map.off('moveend',restart);removeEventListener('resize',restart);engine.stop();engine.clear()}
+    return()=>{map.off('movestart',pause);map.off('moveend',restart);map.off('resize',restart);engine.stop();engine.clear()}
   },[enabled,grid,mapRef])
   return <canvas className={`particles ${enabled?'visible':''}`} ref={canvasRef}/>
 }
 
 function ParticleCanvas({enabled,layer}){
   const canvasRef=useRef(null)
-  useEffect(()=>{const canvas=canvasRef.current,ctx=canvas.getContext('2d');let raf,particles=[];const reset=()=>{const dpr=Math.min(devicePixelRatio,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';ctx.setTransform(dpr,0,0,dpr,0,0);particles=Array.from({length:Math.min(520,Math.round(innerWidth*.36))},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,age:Math.random()*100,max:70+Math.random()*90,speed:.45+Math.random()*1.2}))};const draw=()=>{ctx.clearRect(0,0,innerWidth,innerHeight);if(enabled){ctx.lineWidth=.75;ctx.strokeStyle=layer==='wind'?'rgba(238,252,255,.62)':'rgba(235,249,255,.3)';for(const p of particles){const angle=Math.sin(p.y*.006)+Math.cos(p.x*.004)*.45-.2;const vx=Math.cos(angle)*p.speed*1.8,vy=Math.sin(angle)*p.speed;p.age++;if(p.age>p.max||p.x<0||p.x>innerWidth||p.y<0||p.y>innerHeight){p.x=Math.random()*innerWidth;p.y=Math.random()*innerHeight;p.age=0}ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-vx*6,p.y-vy*6);ctx.stroke();p.x+=vx;p.y+=vy}}raf=requestAnimationFrame(draw)};reset();draw();addEventListener('resize',reset);return()=>{cancelAnimationFrame(raf);removeEventListener('resize',reset)}},[enabled,layer]);return <canvas className={`particles ${enabled?'visible':''}`} ref={canvasRef}/>
+  useEffect(()=>{const canvas=canvasRef.current,ctx=canvas.getContext('2d');let raf,particles=[];let w=0,h=0;const reset=()=>{w=canvas.parentElement.clientWidth;h=canvas.parentElement.clientHeight;const dpr=Math.min(devicePixelRatio,2);canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);particles=Array.from({length:Math.min(520,Math.round(w*.36))},()=>({x:Math.random()*w,y:Math.random()*h,age:Math.random()*100,max:70+Math.random()*90,speed:.45+Math.random()*1.2}))};const draw=()=>{ctx.clearRect(0,0,w,h);if(enabled){ctx.lineWidth=.75;ctx.strokeStyle=layer==='wind'?'rgba(238,252,255,.62)':'rgba(235,249,255,.3)';for(const p of particles){const angle=Math.sin(p.y*.006)+Math.cos(p.x*.004)*.45-.2;const vx=Math.cos(angle)*p.speed*1.8,vy=Math.sin(angle)*p.speed;p.age++;if(p.age>p.max||p.x<0||p.x>w||p.y<0||p.y>h){p.x=Math.random()*w;p.y=Math.random()*h;p.age=0}ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-vx*6,p.y-vy*6);ctx.stroke();p.x+=vx;p.y+=vy}}raf=requestAnimationFrame(draw)};reset();draw();const observer=new ResizeObserver(reset);observer.observe(canvas.parentElement);return()=>{cancelAnimationFrame(raf);observer.disconnect()}},[enabled,layer]);return <canvas className={`particles ${enabled?'visible':''}`} ref={canvasRef}/>
 }
 
 function SearchBox({onPick,onLocate}){
   const [q,setQ]=useState('')
   const results=useMemo(()=>q?cities.filter(c=>(c.name+c.state).toLowerCase().includes(q.toLowerCase())).slice(0,5):[],[q])
-  return <div className="windy-search"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search location..."/><button title="Use my location" onClick={onLocate}><Crosshair/></button>{results.length>0&&<div>{results.map(c=><button key={c.name} onClick={()=>{onPick(c);setQ('')}}><b>{c.name}</b><small>{c.state}</small></button>)}</div>}</div>
+  return <div className="windy-search"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search places" aria-label="Search places"/><button aria-label="Use my location" title="Use my location" onClick={onLocate}><Crosshair/></button>{results.length>0&&<div>{results.map(c=><button key={c.name} onClick={()=>{onPick(c);setQ('')}}><b>{c.name}</b><small>{c.state}</small></button>)}</div>}</div>
 }
 
 function LayerRail({layer,setLayer,openDrawer}){
   const keys=EXTRA_LAYERS.includes(layer)?[...layerOrder,layer]:layerOrder
-  return <aside className="layer-rail"><div className="rail-menu"><span>Layers</span><button onClick={openDrawer} title="All layers"><Menu/></button></div>{keys.map(key=>{const Icon=layerIcons[key],v=variables[key];return <button key={key} className={layer===key?'active':''} onClick={()=>setLayer(key)}><span>{v.short}</span><i style={{background:`conic-gradient(${v.colors.join(',')})`}}><Icon/></i></button>})}<button className="more" onClick={openDrawer}><span>More layers...</span><i><Plus/></i></button></aside>
+  return <section className="layer-rail" aria-label="Weather layers">
+    <div className="rail-menu"><span>Weather</span><button onClick={openDrawer} title="More weather layers" aria-label="More weather layers"><Plus/></button></div>
+    <div className="layer-grid">{keys.map(key=>{const Icon=layerIcons[key],v=variables[key];return <button key={key} className={layer===key?'active':''} aria-pressed={layer===key} onClick={()=>setLayer(key)}><Icon size={18}/><span>{v.short}</span></button>})}<button onClick={openDrawer}><Layers3 size={18}/><span>More</span></button></div>
+  </section>
 }
 
 function LayersDrawer({open,layer,setLayer,onClose}){
-  return <aside className={`layers-drawer ${open?'open':''}`} aria-hidden={!open}><header><b>More layers</b><button onClick={onClose} aria-label="Close"><X/></button></header>{EXTRA_LAYERS.map(key=>{const Icon=layerIcons[key],v=variables[key];return <button key={key} className={layer===key?'active':''} onClick={()=>{setLayer(key);onClose()}}><i style={{background:`conic-gradient(${v.colors.join(',')})`}}><Icon/></i><span><b>{v.label}</b><small>{v.unit} · live grid</small></span>{layer===key&&<Check/>}</button>})}<p>Humidity, pressure, dew point and cloud cover come from the live operational feed. Cloud cover is a model-derived infrared proxy, not satellite imagery.</p></aside>
+  return <aside className={`layers-drawer ${open?'open':''}`} aria-hidden={!open} inert={!open}><header><b>More layers</b><button onClick={onClose} aria-label="Close"><X/></button></header>{EXTRA_LAYERS.map(key=>{const Icon=layerIcons[key],v=variables[key];return <button key={key} className={layer===key?'active':''} onClick={()=>{setLayer(key);onClose()}}><i style={{background:`conic-gradient(${v.colors.join(',')})`}}><Icon/></i><span><b>{v.label}</b><small>{v.unit} · live grid</small></span>{layer===key&&<Check/>}</button>})}<p>Humidity, pressure, dew point and cloud cover come from the live operational feed. Cloud cover is a model-derived infrared proxy, not satellite imagery.</p></aside>
 }
 
 function LocationPopup({city,layer,hour,result,live,unit,bars,onClose}){
@@ -191,17 +197,17 @@ function LocationPopup({city,layer,hour,result,live,unit,bars,onClose}){
   const cur=fc?.current_conditions
   const useCur=hour===0||!step
   const alerts=fc?.active_alerts||[]
-  return <section className="location-popup"><button className="popup-close" onClick={onClose}><X/></button><small>{result?'LIVE ML BLEND':'LOCAL PREVIEW'}</small><h2>{city.name}</h2><p>{city.state} · +{hour}h</p><div className="popup-value"><b>{value}</b><span>{unitLabel}</span></div><div className="popup-stats"><span><small>Confidence</small><b>{confidence}%</b></span><span><small>Disagreement</small><b>±{spread}</b></span><span><small>Regime</small><b>{nearest?.regime||result?.regime?.dominant_regime||city.risk}</b></span></div><div className="popup-weights">{weights.map(m=><i key={m.name} style={{width:`${m.value}%`,background:m.color}} title={`${m.name} ${Math.round(m.value)}%`}/>)}</div><p className="popup-note">{weights.map(m=>`${m.name} ${Math.round(m.value)}%`).join(' · ')}</p>{live&&<div className="popup-live"><small>LIVE FORECAST · /api/live/forecast</small>{live.loading?<p>Loading…</p>:live.error?<p>Live feed unavailable</p>:(step||cur)&&<p>{useCur?`${cur?.temperature_c}°C`:`${step.temperature_c}°C [${step.temperature_ci90?.join(' – ')}]`} · {fmt(speedFromMs(useCur?cur?.wind_speed_ms:step.wind_speed_ms,unit))} {UNITS[unit].label} · {useCur?cur?.precipitation_mm:step.rainfall_mm} mm</p>}{alerts.length>0&&<p className="popup-alert">⚠ {alerts.map(a=>a.headline||a.hazard_type).join(' · ')}</p>}</div>}</section>
+  return <section className="location-popup"><button className="popup-close" aria-label="Close location forecast" onClick={onClose}><X/></button><small>{result?'Forecast':'Preview'}</small><h2>{city.name}</h2><p>{city.state} · +{hour}h</p><div className="popup-value"><b>{value}</b><span>{unitLabel}</span></div><div className="popup-stats"><span><small>Confidence</small><b>{confidence}%</b></span><span><small>Disagreement</small><b>±{spread}</b></span><span><small>Regime</small><b>{nearest?.regime||result?.regime?.dominant_regime||city.risk}</b></span></div><div className="popup-weights">{weights.map(m=><i key={m.name} style={{width:`${m.value}%`,background:m.color}} title={`${m.name} ${Math.round(m.value)}%`}/>)}</div><p className="popup-note">{weights.map(m=>`${m.name} ${Math.round(m.value)}%`).join(' · ')}</p>{live&&<div className="popup-live"><small>Local weather</small>{live.loading?<p>Loading…</p>:live.error?<p>Live feed unavailable</p>:(step||cur)&&<p>{useCur?`${cur?.temperature_c}°C`:`${step.temperature_c}°C [${step.temperature_ci90?.join(' – ')}]`} · {fmt(speedFromMs(useCur?cur?.wind_speed_ms:step.wind_speed_ms,unit))} {UNITS[unit].label} · {useCur?cur?.precipitation_mm:step.rainfall_mm} mm</p>}{alerts.length>0&&<p className="popup-alert">⚠ {alerts.map(a=>a.headline||a.hazard_type).join(' · ')}</p>}</div>}</section>
 }
 
 function BottomTimeline({frame,setFrame,playing,setPlaying,cycleBase}){
   const days=FRAME_HOURS.map(h=>{const d=new Date(cycleBase+h*3600000);return{h,day:d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',timeZone:'UTC'}),hh:pad2(d.getUTCHours())}})
   const cur=days[frame]
-  return <div className="bottom-timeline"><button className="big-play" onClick={()=>setPlaying(!playing)} title={playing?'Pause':'Play'}>{playing?<Pause/>:<Play/>}</button><span aria-hidden="true"/><div className="hour-tag">{cur.hh}:00 UTC<i/></div><div className="days" style={{gridTemplateColumns:`repeat(${days.length},1fr)`}}>{days.map((d,i)=><button key={d.h} className={i===frame?'active':''} onClick={()=>setFrame(i)} title={`t+${d.h}h`}><b>{d.day}</b><small>{d.hh}h · +{d.h}</small></button>)}</div></div>
+  return <div className="bottom-timeline"><button className="big-play" onClick={()=>setPlaying(!playing)} aria-label={playing?'Pause forecast playback':'Play forecast'} title={playing?'Pause':'Play'}>{playing?<Pause/>:<Play/>}</button><span aria-hidden="true"/><div className="hour-tag">{cur.hh}:00 UTC<i/></div><div className="days" style={{gridTemplateColumns:`repeat(${days.length},1fr)`}}>{days.map((d,i)=><button key={d.h} className={i===frame?'active':''} onClick={()=>setFrame(i)} aria-pressed={i===frame} title={`t+${d.h}h`}><b>{d.day}</b><small>{d.hh}h · +{d.h}</small></button>)}</div></div>
 }
 
 function ControlDock({layer,particles,setParticles,mapAction,overlayOpacity,setOverlayOpacity,unit,setUnit,is3D,labelsVisible,setLabelsVisible,locate}){
-  return <div className="control-dock"><div><button onClick={()=>mapAction('in')} title="Zoom in"><Plus/></button><button onClick={()=>mapAction('out')} title="Zoom out"><Minus/></button><button className={is3D?'on':''} onClick={()=>mapAction('3d')} title="Toggle 3D tilt">3D</button><button className={labelsVisible?'':'dim'} onClick={()=>setLabelsVisible(!labelsVisible)} title="Toggle city labels"><Settings2/></button><button onClick={locate} title="Locate me"><LocateFixed/></button></div><section><label><input type="checkbox" checked={particles} onChange={e=>setParticles(e.target.checked)}/><i/> particles{layer!=='wind'&&<small style={{opacity:.6}}> (wind layer)</small>}</label><label className="opacity-control">Overlay <input type="range" min="0" max="0.75" step="0.05" value={overlayOpacity} onChange={e=>setOverlayOpacity(Number(e.target.value))}/></label><span className="unit-pill" role="group" aria-label="Wind speed unit">{Object.entries(UNITS).map(([k,u])=><button key={k} className={unit===k?'active':''} onClick={()=>setUnit(k)}>{u.label}</button>)}</span>{layer!=='wind'&&<span>{variables[layer].unit}</span>}</section></div>
+  return <div className="control-dock"><div><button onClick={()=>mapAction('in')} title="Zoom in"><Plus/></button><button onClick={()=>mapAction('out')} title="Zoom out"><Minus/></button><button className={is3D?'on':''} onClick={()=>mapAction('3d')} title="Toggle 3D tilt" aria-pressed={is3D}>3D</button><button className={labelsVisible?'':'dim'} onClick={()=>setLabelsVisible(!labelsVisible)} title="Toggle city labels" aria-label="Toggle city labels" aria-pressed={labelsVisible}><Settings2/></button><button onClick={locate} title="Locate me"><LocateFixed/></button></div><details className="display-options"><summary>Display <ChevronDown size={14}/></summary><section><label><input type="checkbox" checked={particles} onChange={e=>setParticles(e.target.checked)}/><i/> Wind animation{layer!=='wind'&&<small style={{opacity:.6}}> (wind layer)</small>}</label><label className="opacity-control">Overlay <input type="range" min="0" max="0.75" step="0.05" value={overlayOpacity} onChange={e=>setOverlayOpacity(Number(e.target.value))}/></label><span className="unit-pill" role="group" aria-label="Wind speed unit">{Object.entries(UNITS).map(([k,u])=><button key={k} className={unit===k?'active':''} aria-pressed={unit===k} onClick={()=>setUnit(k)}>{u.label}</button>)}</span>{layer!=='wind'&&<span>{variables[layer].unit}</span>}</section></details></div>
 }
 
 function LegendBar({layer,unit,hazardCount}){
@@ -225,10 +231,10 @@ function AdvancedBlenderModal({open,model,onSelect,onClose}){
     return()=>removeEventListener('keydown',onKey)
   },[open])
   if(!open)return null
-  return <div className="blender-modal-backdrop" onClick={onClose}><div className="blender-modal-card" role="dialog" aria-modal="true" aria-label="Advanced blenders" onClick={e=>e.stopPropagation()}>
-    <div className="blender-modal-header"><b>Advanced blenders</b><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
+  return <div className="blender-modal-backdrop" onClick={onClose}><div className="blender-modal-card" role="dialog" aria-modal="true" aria-label="More forecast models" onClick={e=>e.stopPropagation()}>
+    <div className="blender-modal-header"><b>More forecast models</b><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
     <div className="blender-modal-body">{ADVANCED_MODELS.map(m=><button key={m.id} className={`blender-option ${model===m.id?'active':''}`} onClick={()=>onSelect(m.id)}><span><b>{m.label}</b><small>{m.hint}</small></span>{model===m.id&&<Check size={16}/>}</button>)}
-      <p className="blender-note">Methods without a dedicated pipeline implementation run as the regime blender; the status pill reports the effective method.</p></div>
+      <p className="blender-note">Some methods use the regime blend when a dedicated model is unavailable.</p></div>
   </div></div>
 }
 
@@ -236,22 +242,22 @@ function OperationalMenuDrawer({isOpen,onClose,basemap,setBasemap,health,gridCou
   if(!isOpen)return null
   const docsUrl=`${apiClient.baseUrl}/docs`
   return <div className="menu-drawer-backdrop" onClick={onClose}><div className="menu-drawer-panel" role="dialog" aria-label="BharatWeather operations and settings" onClick={e=>e.stopPropagation()}>
-    <div className="drawer-header"><h3>BharatWeather Operations & Settings</h3><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
+    <div className="drawer-header"><h3>Map settings</h3><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
     <div className="drawer-body">
-      <div className="drawer-section"><h4>🗺️ Map Basemap Style</h4><div className="drawer-grid">{Object.entries(BASEMAPS).map(([k,b])=><button key={k} className={`drawer-choice ${basemap===k?'active':''}`} onClick={()=>setBasemap(k)}>{b.label}</button>)}</div></div>
-      <div className="drawer-section"><h4>⚡ System Health & Connection</h4><div className="status-box">
-        {health.error?<p>Backend unreachable — start <b>python run_server.py</b>.</p>:<>
+      <div className="drawer-section"><h4>Map appearance</h4><div className="drawer-grid">{Object.entries(BASEMAPS).map(([k,b])=><button key={k} className={`drawer-choice ${basemap===k?'active':''}`} onClick={()=>setBasemap(k)}>{b.label}</button>)}</div></div>
+      <div className="drawer-section"><h4>Data connection</h4><div className="status-box">
+        {health.error?<p>The forecast service is currently unavailable.</p>:<>
           <p><strong>Provider:</strong> {health.status?.provider||'…'}</p>
           <p><strong>Status:</strong> {health.status?`${health.status.status} · ${health.status.freshness}${Number.isFinite(health.status.data_age_minutes)&&health.status.freshness!=='unavailable'?` (${Math.round(health.status.data_age_minutes)} min old)`:''}`:'…'}</p>
           <p><strong>Provider latency:</strong> {health.status?.latency_ms!=null?`${fmt(health.status.latency_ms,0)} ms`:'…'}</p>
           <p><strong>Active grid:</strong> {gridCount!=null?`${gridCount.toLocaleString()} forecast nodes`:'—'}</p>
           <p><strong>Engine version:</strong> {health.meta?.version?`v${health.meta.version}`:'…'}</p></>}
       </div></div>
-      <div className="drawer-section"><h4>📥 Data Export & Research Logs</h4>
-        <button className="drawer-action-btn" onClick={onExportJSON}><Download size={16}/> Export Current Forecast Payload (JSON)</button>
-        <button className="drawer-action-btn" onClick={()=>window.open(docsUrl,'_blank','noopener')}><ExternalLink size={16}/> Open FastAPI Swagger Documentation</button>
+      <div className="drawer-section"><h4>Downloads</h4>
+        <button className="drawer-action-btn" onClick={onExportJSON}><Download size={16}/> Download forecast (JSON)</button>
+        <button className="drawer-action-btn" onClick={()=>window.open(docsUrl,'_blank','noopener')}><ExternalLink size={16}/> API documentation</button>
       </div>
-      <div className="drawer-section"><h4>⚙️ Display Preferences</h4>
+      <div className="drawer-section"><h4>Display</h4>
         <label className="drawer-toggle"><span>Show City Labels</span><input type="checkbox" checked={labelsVisible} onChange={e=>setLabelsVisible(e.target.checked)}/></label>
         <label className="drawer-toggle"><span>Show High-Risk Hazard Radar</span><input type="checkbox" checked={hazardsVisible} onChange={e=>setHazardsVisible(e.target.checked)}/></label>
       </div>
@@ -263,6 +269,8 @@ export default function WeatherMapWorkspace({onNavigateHome}){
   const [layer,setLayer]=useState('wind'),[frame,setFrame]=useState(2),[playing,setPlaying]=useState(false),[selected,setSelected]=useState(null),[particles,setParticles]=useState(true),[overlayOpacity,setOverlayOpacity]=useState(.42)
   const [model,setModel]=useState('regime_blender'),[unit,setUnit]=useState('kmh'),[is3D,setIs3D]=useState(false),[labelsVisible,setLabelsVisible]=useState(true)
   const [moreOpen,setMoreOpen]=useState(false),[drawerOpen,setDrawerOpen]=useState(false),[cycleOpen,setCycleOpen]=useState(false),[toast,setToast]=useState(null)
+  const [panelOpen,setPanelOpen]=useState(()=>window.innerWidth>720),[timelineOpen,setTimelineOpen]=useState(true)
+  const pickLocation=useCallback(city=>{setSelected(city);setPanelOpen(true)},[])
   const [cycle,setCycle]=useState(()=>Math.floor(new Date().getUTCHours()/6)*6)
   const [windGrid,setWindGrid]=useState(null),[forecastResult,setForecastResult]=useState(null),[prevResult,setPrevResult]=useState(null)
   const [weightBars,setWeightBars]=useState(null),[liveSel,setLiveSel]=useState(null)
@@ -385,7 +393,7 @@ export default function WeatherMapWorkspace({onNavigateHome}){
     notify('Locating…')
     navigator.geolocation.getCurrentPosition(pos=>{
       const {latitude:lat,longitude:lng}=pos.coords
-      setSelected({name:'My location',state:`${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E`,coordinates:[lng,lat],rain:0,temp:0,wind:0,risk:'—',mine:true})
+      pickLocation({name:'My location',state:`${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E`,coordinates:[lng,lat],rain:0,temp:0,wind:0,risk:'—',mine:true})
     },err=>notify(`Could not get location: ${err.message}`),{enableHighAccuracy:false,timeout:10000})
   }
 
@@ -410,16 +418,46 @@ export default function WeatherMapWorkspace({onNavigateHome}){
   const share=()=>navigator.clipboard?.writeText(location.href).then(()=>notify('Link copied to clipboard'),()=>notify('Could not copy link'))
   const cycleLabel=`${new Date(cycleBase).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'UTC'})} · ${pad2(cycle)} UTC`
 
-  return <main className="windy-app"><WeatherMap {...{layer,selected,setSelected,mapRef,fieldGeoJSON,overlayOpacity,labelsVisible,basemap}}/>{windGrid?<LiveWindParticles enabled={particles&&layer==='wind'} grid={windGrid} mapRef={mapRef}/>:<ParticleCanvas enabled={particles&&layer==='wind'} layer={layer}/>}<HazardMarkers mapRef={mapRef} hazards={hazards} active={layer==='extremes'&&hazardsVisible}/><SearchBox onPick={setSelected} onLocate={locate}/><button className="share" onClick={share} title="Copy link"><Upload/></button><div className="center-brand portal-brand-clickable" role="link" tabIndex={0} title="Return to BharatWeather Landing Page" onClick={()=>onNavigateHome?onNavigateHome():(window.location.hash='#home')} onKeyDown={e=>{if(e.key==='Enter')(onNavigateHome||(()=>{window.location.hash='#home'}))()}}><span><Wind/></span><b>BharatWeather</b><small>weather intelligence</small></div>
-    <div className="top-actions"><div className="cycle-wrap"><button className="run-select" onClick={()=>setCycleOpen(!cycleOpen)}>{cycleLabel} <ChevronDown/></button>{cycleOpen&&<div className="cycle-menu">{CYCLES.map(c=><button key={c} className={c===cycle?'active':''} onClick={()=>{setCycle(c);setCycleOpen(false)}}>{pad2(c)} UTC{c===cycle&&<Check/>}</button>)}<small>The cycle shifts valid times and the live-grid hour. The synthetic forecast archive has no per-cycle runs.</small></div>}</div><button className={`api-status ${apiState.status}`} title="Forecast engine telemetry"><i/>{apiState.message}{hour>48&&!isLiveLayer?' · archive max +48h':''}</button><button className="login" onClick={()=>setIsMenuOpen(true)}><Menu size={18}/> Menu</button></div>
-    <LayerRail {...{layer,setLayer}} openDrawer={()=>setDrawerOpen(true)}/><LayersDrawer open={drawerOpen} layer={layer} setLayer={setLayer} onClose={()=>setDrawerOpen(false)}/>
-    {selected&&<LocationPopup city={selected} layer={layer} hour={hour} result={forecastResult} live={liveSel&&{...liveSel,liveCell}} unit={unit} bars={weightBars?.bars} onClose={()=>setSelected(null)}/>}
-    <div className="lead-picker"><span>Lead time</span>{[24,48,72].map(x=><button key={x} className={hour===x?'active':''} onClick={()=>setLead(x)}>+{x}h</button>)}</div>
-    <WeightsPanel weights={weightBars?.bars} model={model} note={weightBars?.note}/>
-    <LegendBar layer={layer} unit={unit} hazardCount={hazards.length}/>
-    <div className="model-picker">{MAIN_MODELS.map(m=><button key={m.id} className={model===m.id?'active':''} title={m.hint} onClick={()=>setModel(m.id)}>{m.label}</button>)}<button className={isAdvanced(model)?'active':''} onClick={()=>setMoreOpen(!moreOpen)}>{isAdvanced(model)?MODEL_INDEX[model].label.replace(/^\p{Extended_Pictographic}\S*\s/u,''):'More…'}</button>
-</div>
-    <ControlDock {...{layer,particles,setParticles,mapAction,overlayOpacity,setOverlayOpacity,unit,setUnit,is3D,labelsVisible,setLabelsVisible,locate}}/>
-    <button className="zoom-fab in" onClick={()=>mapAction('in')}><Plus/></button><button className="zoom-fab out" onClick={()=>mapAction('out')}><Minus/></button>
-    <BottomTimeline {...{frame,setFrame,playing,setPlaying,cycleBase}}/><AdvancedBlenderModal open={moreOpen} model={model} onSelect={id=>{setModel(id);setMoreOpen(false)}} onClose={()=>setMoreOpen(false)}/><OperationalMenuDrawer isOpen={isMenuOpen} onClose={()=>setIsMenuOpen(false)} basemap={basemap} setBasemap={setBasemap} health={health} gridCount={forecastResult?.forecast_count??windGrid?.cells?.length??null} onExportJSON={exportJSON} labelsVisible={labelsVisible} setLabelsVisible={setLabelsVisible} hazardsVisible={hazardsVisible} setHazardsVisible={setHazardsVisible}/>{toast&&<div className="map-toast" role="status">{toast}</div>}</main>
+  return <main className={`windy-app map-page docked-map ${panelOpen?'panel-open':'panel-closed'}`}>
+    <div className="map-viewport">
+    <WeatherMap {...{layer,selected,mapRef,fieldGeoJSON,overlayOpacity,labelsVisible,basemap}} setSelected={pickLocation}/>
+    {windGrid?<LiveWindParticles enabled={particles&&layer==='wind'} grid={windGrid} mapRef={mapRef}/>:<ParticleCanvas enabled={particles&&layer==='wind'} layer={layer}/>}
+    <HazardMarkers mapRef={mapRef} hazards={hazards} active={layer==='extremes'&&hazardsVisible}/>
+    </div>
+
+    <aside className="map-panel" id="forecast-sidebar" aria-label="Forecast controls" hidden={!panelOpen}>
+      <div className="map-panel-header">
+        <button className="map-home" onClick={()=>onNavigateHome?onNavigateHome():(window.location.hash='#home')} title="Return home"><Wind size={22}/><span>BharatWeather</span></button>
+        <button className="map-share" onClick={share} title="Copy map link" aria-label="Copy map link"><Upload size={18}/></button>
+      </div>
+      <SearchBox onPick={pickLocation} onLocate={locate}/>
+      {selected&&<LocationPopup city={selected} layer={layer} hour={hour} result={forecastResult} live={liveSel&&{...liveSel,liveCell}} unit={unit} bars={weightBars?.bars} onClose={()=>setSelected(null)}/>}
+      <LayerRail {...{layer,setLayer}} openDrawer={()=>setDrawerOpen(true)}/>
+      <LayersDrawer open={drawerOpen} layer={layer} setLayer={setLayer} onClose={()=>setDrawerOpen(false)}/>
+      <div className="lead-picker"><span>Forecast</span><div>{[24,48,72].map(x=><button key={x} className={hour===x?'active':''} aria-pressed={hour===x} onClick={()=>setLead(x)}>+{x}h</button>)}</div></div>
+      <details className="forecast-options">
+        <summary>Forecast models <ChevronDown size={16}/></summary>
+        <div className="model-picker">{MAIN_MODELS.map(m=><button key={m.id} className={model===m.id?'active':''} aria-pressed={model===m.id} title={m.hint} onClick={()=>setModel(m.id)}>{m.label}{model===m.id&&<Check size={14}/>}</button>)}<button onClick={()=>setMoreOpen(true)}>More models<ChevronDown size={14}/></button></div>
+        <WeightsPanel weights={weightBars?.bars} model={model}/>
+      </details>
+      <div className={`map-data-status ${apiState.status}`} title={apiState.message} role="status"><i/>{apiState.status==='online'?'Forecast available':apiState.status==='error'?'Showing preview':'Updating forecast…'}</div>
+    </aside>
+
+    <header className="map-toolbar">
+      <button className="weather-panel-toggle" aria-controls="forecast-sidebar" aria-expanded={panelOpen} onClick={()=>setPanelOpen(value=>!value)} title={panelOpen?'Hide weather sidebar':'Show weather sidebar'}>{panelOpen?<PanelLeftClose size={18}/>:<PanelLeftOpen size={18}/>}<span>Weather</span></button>
+      <span className="map-current-layer">{variables[layer].short}</span>
+      <ControlDock {...{layer,particles,setParticles,mapAction,overlayOpacity,setOverlayOpacity,unit,setUnit,is3D,labelsVisible,setLabelsVisible,locate}}/>
+      <div className="top-actions">
+      <div className="cycle-wrap"><button className="run-select" aria-expanded={cycleOpen} onClick={()=>setCycleOpen(!cycleOpen)}>{cycleLabel} <ChevronDown/></button>{cycleOpen&&<div className="cycle-menu">{CYCLES.map(c=><button key={c} className={c===cycle?'active':''} onClick={()=>{setCycle(c);setCycleOpen(false)}}>{pad2(c)} UTC{c===cycle&&<Check/>}</button>)}<small>Forecast update time. All times are UTC.</small></div>}</div>
+      <button className="login" onClick={()=>setIsMenuOpen(true)} title="Map settings" aria-label="Map settings"><Menu size={18}/></button>
+      </div>
+    </header>
+    <footer className={`map-footer ${timelineOpen?'':'timeline-closed'}`}>
+      <div className="map-footer-heading"><LegendBar layer={layer} unit={unit} hazardCount={hazards.length}/><button className="timeline-toggle" aria-expanded={timelineOpen} aria-controls="forecast-timeline" onClick={()=>setTimelineOpen(value=>!value)}>{timelineOpen?'Hide timeline':'Show timeline'}<ChevronDown size={14}/></button></div>
+      <div id="forecast-timeline" hidden={!timelineOpen}><BottomTimeline {...{frame,setFrame,playing,setPlaying,cycleBase}}/></div>
+      {toast&&<div className="map-toast" role="status">{toast}</div>}
+    </footer>
+    <AdvancedBlenderModal open={moreOpen} model={model} onSelect={id=>{setModel(id);setMoreOpen(false)}} onClose={()=>setMoreOpen(false)}/>
+    <OperationalMenuDrawer isOpen={isMenuOpen} onClose={()=>setIsMenuOpen(false)} basemap={basemap} setBasemap={setBasemap} health={health} gridCount={forecastResult?.forecast_count??windGrid?.cells?.length??null} onExportJSON={exportJSON} labelsVisible={labelsVisible} setLabelsVisible={setLabelsVisible} hazardsVisible={hazardsVisible} setHazardsVisible={setHazardsVisible}/>
+  </main>
 }

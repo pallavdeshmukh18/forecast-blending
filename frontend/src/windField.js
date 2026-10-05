@@ -99,7 +99,7 @@ export function createScalarSampler(grid, read) {
   const nLon = lo.length;
   const at = (i, j) => {
     const v = read(cells[i * nLon + j]);
-    return typeof v === 'number' ? v : null;
+    return Number.isFinite(v) ? v : null;
   };
   return (lat, lng) => {
     if (lat < la[0] || lat > la[la.length - 1] || lng < lo[0] || lng > lo[nLon - 1]) return null;
@@ -174,18 +174,21 @@ export function drawScalarLayer(ctx, w, h, unproject, sample, stops, opacity = 0
 
 /**
  * Animated particle streamlines (Windy-style). Particles advect through a pixel-space (u,v) field
- * rebuilt whenever the view changes; trails fade through destination-out compositing.
+ * rebuilt whenever the view changes; white trails fade toward their tails.
  */
 export class WindParticleEngine {
-  constructor(canvas, { getSize, unproject, sampleWind, density = 0.0016, maxParticles = 4500, speedScale = 0.32 }) {
+  constructor(canvas, { getSize, unproject, project, sampleWind, density = 0.0006, maxParticles = 1400, speedScale = 0.30 }) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.getSize = getSize;
     this.unproject = unproject;
+    this.project = project;
     this.sampleWind = sampleWind;
     this.density = density;
     this.maxParticles = maxParticles;
     this.speedScale = speedScale;
+    // Longer histories reveal the flow in a sparse grid without extra weather samples.
+    this.trailLength = 36;
     this.raf = null;
     this.particles = [];
     this.field = null;
@@ -208,72 +211,107 @@ export class WindParticleEngine {
   }
 
   rebuild() {
-    this.field = buildPixelField(this.w, this.h, 6, this.unproject, this.sampleWind);
+    this.field = buildPixelField(this.w, this.h, 6, this.unproject, (lat, lng) => {
+      const wind = this.sampleWind(lat, lng);
+      if (!wind || !Number.isFinite(wind.speed)) return null;
+      if (!this.project || wind.speed === 0) return { ...wind, dx: wind.u, dy: -wind.v };
+      // Project a short east/north displacement, including longitude's latitude scale.
+      const origin = this.project(lat, lng);
+      const next = this.project(lat + wind.v * 0.0001,
+        lng + wind.u * 0.0001 / Math.max(0.01, Math.cos(lat * Math.PI / 180)));
+      const dx = next[0] - origin[0], dy = next[1] - origin[1];
+      const length = Math.hypot(dx, dy);
+      if (!Number.isFinite(length) || length === 0) return null;
+      return { ...wind, dx: dx / length * wind.speed, dy: dy / length * wind.speed };
+    });
     this.ctx.clearRect(0, 0, this.w, this.h);
   }
 
   spawn(p) {
     p.x = Math.random() * this.w;
     p.y = Math.random() * this.h;
-    p.age = Math.floor(Math.random() * 40);
-    p.max = 50 + Math.random() * 50; // 50-100 frames
-    p.px = p.x;
-    p.py = p.y;
+    p.age = 0;
+    p.max = 150 + Math.random() * 90; // 2.5–4 seconds at the fixed 60 Hz simulation rate
+    p.trail = [];
     return p;
   }
 
   lookup(x, y) {
+    if (x < 0 || y < 0 || x >= this.w || y >= this.h) return null;
     const f = this.field;
-    const c = Math.floor(x / f.step), r = Math.floor(y / f.step);
-    if (c < 0 || r < 0 || c >= f.cols || r >= f.rows) return null;
-    return f.data[r * f.cols + c];
+    const gx = Math.max(0, Math.min(f.cols - 1, x / f.step - 0.5));
+    const gy = Math.max(0, Math.min(f.rows - 1, y / f.step - 0.5));
+    const c = Math.floor(gx), r = Math.floor(gy);
+    const tx = gx - c, ty = gy - r;
+    const samples = [f.data[r * f.cols + c], f.data[r * f.cols + Math.min(c + 1, f.cols - 1)],
+      f.data[Math.min(r + 1, f.rows - 1) * f.cols + c],
+      f.data[Math.min(r + 1, f.rows - 1) * f.cols + Math.min(c + 1, f.cols - 1)]];
+    if (samples.some(value => !value)) return null;
+    const weights = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
+    return samples.reduce((out, value, i) => ({
+      dx: out.dx + value.dx * weights[i], dy: out.dy + value.dy * weights[i],
+    }), { dx: 0, dy: 0 });
   }
 
-  frame = () => {
-    if (!this.running) return;
-    const ctx = this.ctx;
-    // fade existing trails
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = 'rgba(0,0,0,0.07)';
-    ctx.fillRect(0, 0, this.w, this.h);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.lineWidth = 1.25;
-    ctx.lineCap = 'round';
-
-    // batch strokes per colour bucket
-    const buckets = WIND_STOPS.map(() => []);
+  advance() {
     for (const p of this.particles) {
-      const wnd = this.lookup(p.x, p.y);
-      if (!wnd || p.age >= p.max) {
+      const wind = this.lookup(p.x, p.y);
+      if (!wind || p.age >= p.max) {
         this.spawn(p);
         continue;
       }
-      const nx = p.x + wnd.u * this.speedScale;
-      const ny = p.y - wnd.v * this.speedScale; // screen y grows downward
-      const bi = WIND_STOPS.findIndex((s) => wnd.speed < s.max);
-      buckets[bi].push(p.x, p.y, nx, ny);
-      p.px = p.x;
-      p.py = p.y;
-      p.x = nx;
-      p.y = ny;
+      // Midpoint integration follows curves without abrupt turns at lookup-cell edges.
+      const mid = this.lookup(p.x + wind.dx * this.speedScale / 2,
+        p.y + wind.dy * this.speedScale / 2);
+      if (!mid) { this.spawn(p); continue; }
+      p.trail.push([p.x, p.y]);
+      if (p.trail.length > this.trailLength) p.trail.shift();
+      p.x += mid.dx * this.speedScale;
+      p.y += mid.dy * this.speedScale;
       p.age++;
     }
-    buckets.forEach((seg, i) => {
-      if (!seg.length) return;
-      ctx.strokeStyle = WIND_STOPS[i].color;
+  }
+
+  frame = (time) => {
+    if (!this.running) return;
+    // Fixed simulation steps give the same movement and trail length on 60/120 Hz displays.
+    this.elapsed += this.lastTime == null ? 1000 / 60 : Math.min(50, time - this.lastTime);
+    this.lastTime = time;
+    while (this.elapsed >= 1000 / 60) {
+      this.advance();
+      this.elapsed -= 1000 / 60;
+    }
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.w, this.h);
+    ctx.lineCap = 'round';
+    // Draw tails first, then brighter heads. Explicit trails avoid persistent canvas ghosting.
+    for (let segment = 0; segment < this.trailLength; segment++) {
+      const strength = Math.pow((segment + 1) / this.trailLength, 0.7);
       ctx.beginPath();
-      for (let k = 0; k < seg.length; k += 4) {
-        ctx.moveTo(seg[k], seg[k + 1]);
-        ctx.lineTo(seg[k + 2], seg[k + 3]);
+      for (const p of this.particles) {
+        const index = p.trail.length - this.trailLength + segment;
+        if (index < 0) continue;
+        const from = p.trail[index];
+        const to = p.trail[index + 1] || [p.x, p.y];
+        ctx.moveTo(...from);
+        ctx.lineTo(...to);
       }
+      // A subtle dark edge keeps the white flow visible over light map tiles.
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(25, 48, 62, ${strength * 0.16})`;
       ctx.stroke();
-    });
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = `rgba(245, 252, 255, ${strength * 0.85})`;
+      ctx.stroke();
+    }
     this.raf = requestAnimationFrame(this.frame);
   };
 
   start() {
     if (this.running) return;
     this.running = true;
+    this.lastTime = null;
+    this.elapsed = 0;
     this.raf = requestAnimationFrame(this.frame);
   }
 
