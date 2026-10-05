@@ -73,6 +73,7 @@ def normalize_hourly_forecasts(
 ) -> Tuple[pd.DataFrame, List[Dict[str, Any]]]:
     """
     Extract and structure hourly forecast records and calculate 6-hour accumulations.
+    Supports both standard single-feed and multi-model operational feeds.
     
     Returns:
         (standard_forecast_df, list_of_step_dicts)
@@ -82,72 +83,108 @@ def normalize_hourly_forecasts(
         return pd.DataFrame(), []
         
     times = [parse_iso_timestamp(t) for t in hourly["time"]]
-    temps = [float(v) if v is not None else np.nan for v in hourly.get("temperature_2m", [])]
-    winds = [float(v) if v is not None else np.nan for v in hourly.get("wind_speed_10m", [])]
-    precips = [max(0.0, float(v)) if v is not None else 0.0 for v in hourly.get("precipitation", [])]
-    
     lat = float(raw_data.get("_latitude", raw_data.get("latitude", 0.0)))
     lon = float(raw_data.get("_longitude", raw_data.get("longitude", 0.0)))
     provider = raw_data.get("_provider", "Open-Meteo")
-    model_name = "operational_forecast"
     
+    # Check for multi-model keys in hourly
+    model_keys: Dict[str, Dict[str, str]] = {}
+    for k in hourly.keys():
+        if k.startswith("temperature_2m_"):
+            m_name = k.replace("temperature_2m_", "")
+            model_keys[m_name] = {
+                "temp": k,
+                "wind": f"wind_speed_10m_{m_name}",
+                "precip": f"precipitation_{m_name}",
+            }
+
+    # Fallback to single operational forecast if no multi-model suffixes
+    if not model_keys:
+        model_keys["operational_forecast"] = {
+            "temp": "temperature_2m",
+            "wind": "wind_speed_10m",
+            "precip": "precipitation",
+        }
+
     init_time = times[0] if times else datetime.now(timezone.utc)
     leads = target_lead_times or [6, 12, 24, 48, 72]
     
     records = []
     step_summaries = []
-    
+
     for lead in leads:
         if lead < len(times):
             v_time = times[lead]
-            t_val = temps[lead]
-            w_val = winds[lead]
-            
-            # 6-hour precipitation accumulation: sum of the preceding 6 hourly precipitation values
             start_idx = max(0, lead - 5)
-            r_val_6h = sum(precips[start_idx : lead + 1])
             
-            # Standard DataFrame rows
-            records.append({
-                "timestamp": v_time,
-                "latitude": lat,
-                "longitude": lon,
-                "variable": "temperature",
-                "forecast_value": t_val,
-                "model_name": model_name,
-                "lead_time": lead,
-                "run_time": init_time,
-                "provider": provider,
-            })
-            records.append({
-                "timestamp": v_time,
-                "latitude": lat,
-                "longitude": lon,
-                "variable": "wind_speed",
-                "forecast_value": w_val,
-                "model_name": model_name,
-                "lead_time": lead,
-                "run_time": init_time,
-                "provider": provider,
-            })
-            records.append({
-                "timestamp": v_time,
-                "latitude": lat,
-                "longitude": lon,
-                "variable": "rainfall",
-                "forecast_value": r_val_6h,
-                "model_name": model_name,
-                "lead_time": lead,
-                "run_time": init_time,
-                "provider": provider,
-            })
+            lead_model_fcs = {}
+            for m_name, cols in model_keys.items():
+                m_temps = hourly.get(cols["temp"], hourly.get("temperature_2m", []))
+                m_winds = hourly.get(cols["wind"], hourly.get("wind_speed_10m", []))
+                m_precips = hourly.get(cols["precip"], hourly.get("precipitation", []))
+                
+                t_val = float(m_temps[lead]) if lead < len(m_temps) and m_temps[lead] is not None else np.nan
+                w_val = float(m_winds[lead]) if lead < len(m_winds) and m_winds[lead] is not None else np.nan
+                r_val_6h = sum([max(0.0, float(v)) for v in m_precips[start_idx : lead + 1] if v is not None]) if len(m_precips) > lead else 0.0
+                
+                clean_m = "ecmwf" if "ecmwf" in m_name else "gfs" if "gfs" in m_name else "icon" if "icon" in m_name else m_name
+
+                lead_model_fcs[clean_m] = {
+                    "temperature_c": round(t_val, 2) if not np.isnan(t_val) else 0.0,
+                    "wind_speed_ms": round(w_val, 2) if not np.isnan(w_val) else 0.0,
+                    "rainfall_mm": round(r_val_6h, 2),
+                }
+
+                # Standard DataFrame rows
+                records.append({
+                    "timestamp": v_time,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "variable": "temperature",
+                    "forecast_value": t_val,
+                    "model_name": clean_m,
+                    "lead_time": lead,
+                    "run_time": init_time,
+                    "provider": provider,
+                })
+                records.append({
+                    "timestamp": v_time,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "variable": "wind_speed",
+                    "forecast_value": w_val,
+                    "model_name": clean_m,
+                    "lead_time": lead,
+                    "run_time": init_time,
+                    "provider": provider,
+                })
+                records.append({
+                    "timestamp": v_time,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "variable": "rainfall",
+                    "forecast_value": r_val_6h,
+                    "model_name": clean_m,
+                    "lead_time": lead,
+                    "run_time": init_time,
+                    "provider": provider,
+                })
+
+            all_temps = [f["temperature_c"] for f in lead_model_fcs.values() if not np.isnan(f["temperature_c"])]
+            all_winds = [f["wind_speed_ms"] for f in lead_model_fcs.values() if not np.isnan(f["wind_speed_ms"])]
+            all_rains = [f["rainfall_mm"] for f in lead_model_fcs.values() if not np.isnan(f["rainfall_mm"])]
             
+            mean_t = float(np.mean(all_temps)) if all_temps else 0.0
+            mean_w = float(np.mean(all_winds)) if all_winds else 0.0
+            mean_r = float(np.mean(all_rains)) if all_rains else 0.0
+
             step_summaries.append({
                 "lead_time_hours": lead,
                 "valid_time_utc": v_time.isoformat(),
-                "temperature_c": round(t_val, 2) if not np.isnan(t_val) else 0.0,
-                "wind_speed_ms": round(w_val, 2) if not np.isnan(w_val) else 0.0,
-                "rainfall_mm": round(r_val_6h, 2),
+                "temperature_c": round(mean_t, 2),
+                "wind_speed_ms": round(mean_w, 2),
+                "rainfall_mm": round(mean_r, 2),
+                "models": lead_model_fcs,
             })
             
     df = pd.DataFrame(records)
