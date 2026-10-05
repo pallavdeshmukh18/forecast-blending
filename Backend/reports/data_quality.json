@@ -15,10 +15,10 @@
     "ai_model_c": 1053
   },
   "records_by_variable": {
-    "wind_speed": 3159
+    "rainfall": 3159
   },
   "records_by_lead_time": {
-    "48": 3159
+    "12": 3159
   },
   "issues_summary": [],
   "rejection_reasons": {}
