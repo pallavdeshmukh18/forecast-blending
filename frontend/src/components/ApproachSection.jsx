@@ -88,7 +88,7 @@ export default function ApproachSection() {
         <div className="section-header">
           <span className="section-tag">OUR APPROACH</span>
           <h2 className="section-title">
-            Combining the Best of Global Weather Models
+            BharatWeather Blending Architecture: the Best of Global Weather Models
           </h2>
           <p className="section-subtitle">
             We intelligently blend multiple AI and numerical weather models,
@@ -138,7 +138,7 @@ export default function ApproachSection() {
               <Cloud size={38} fill="white" strokeWidth={1.5} />
             </div>
             <div className="center-hub-label">
-              <h3 className="center-hub-title">SkyCast</h3>
+              <h3 className="center-hub-title">BharatWeather</h3>
               <p className="center-hub-subtitle">Intelligent Blending</p>
             </div>
           </div>

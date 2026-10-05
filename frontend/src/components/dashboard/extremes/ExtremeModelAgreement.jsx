@@ -8,7 +8,7 @@ export default function ExtremeModelAgreement({ models, unit }) {
     { id: 'graphcast', name: 'GraphCast', prob: 55, forecast: '39 mm' },
     { id: 'pangu', name: 'Pangu-Weather', prob: 62, forecast: '43 mm' },
     { id: 'regional_wrf', name: 'Regional WRF', prob: 50, forecast: '37 mm' },
-    { id: 'skycast', name: 'SkyCast Blend', prob: 72, forecast: '42 mm' },
+    { id: 'skycast', name: 'BharatWeather Blend', prob: 72, forecast: '42 mm' },
   ];
 
   return (

@@ -94,7 +94,7 @@ export default function ModelDisagreement({ models, unit, modelSpread }) {
 
       <div className="disagreement-footer-explainer">
         <span>
-          Disagreement reflects cross-model standard deviation. A compact cluster around the SkyCast blend indicates robust physical consensus, while wider dispersion flags sensitivity to atmospheric initial conditions.
+          Disagreement reflects cross-model standard deviation. A compact cluster around the BharatWeather blend indicates robust physical consensus, while wider dispersion flags sensitivity to atmospheric initial conditions.
         </span>
       </div>
     </div>

@@ -62,12 +62,12 @@ export default function ModelForecastComparison({ forecastData }) {
           <span>OPERATIONAL BLEND RESULT</span>
         </div>
 
-        {/* SkyCast Blended Composite */}
+        {/* BharatWeather Blended Composite */}
         <div className="blend-bar-row">
           <div className="model-bar-header">
             <div className="blend-title-group">
               <ShieldCheck size={16} className="blend-check-icon" />
-              <span className="blend-name-label">SKYCAST BLEND</span>
+              <span className="blend-name-label">BHARATWEATHER BLEND</span>
               <span className="blend-tag-pill">Convex Optimal</span>
             </div>
             <span className="blend-val-label">

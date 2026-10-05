@@ -188,7 +188,7 @@ export default function ForecastChanges() {
             />
           </section>
 
-          {/* Section 8: SkyCast Blend Evolution & Weights Rebalancing */}
+          {/* Section 8: BharatWeather Blend Evolution & Weights Rebalancing */}
           <section className="changes-section">
             <SkyCastBlendChange
               weightChanges={changesData.weightChanges}

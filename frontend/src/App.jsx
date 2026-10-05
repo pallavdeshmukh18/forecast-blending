@@ -12,7 +12,7 @@ export default function App() {
   const [user, setUser] = useState({
     name: 'Dr. Anuj G.',
     role: 'Lead Meteorologist',
-    email: 'meteorologist@skycast.ai'
+    email: 'meteorologist@bharatweather.ai'
   });
 
   // Listen for hash navigation
@@ -37,7 +37,7 @@ export default function App() {
       setUser({
         name: 'Dr. Anuj G.',
         role: 'Lead Meteorologist',
-        email: 'meteorologist@skycast.ai'
+        email: 'meteorologist@bharatweather.ai'
       });
     }
     setCurrentView('dashboard');

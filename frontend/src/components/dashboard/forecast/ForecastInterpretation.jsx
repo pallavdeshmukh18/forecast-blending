@@ -51,7 +51,7 @@ export default function ForecastInterpretation({ forecastData }) {
         </p>
 
         <p className="interpretation-paragraph highlight-blend-statement">
-          The SkyCast blended forecast is{' '}
+          The BharatWeather blended forecast is{' '}
           <strong className="blend-highlight">
             {blendVal} {unit}
           </strong>

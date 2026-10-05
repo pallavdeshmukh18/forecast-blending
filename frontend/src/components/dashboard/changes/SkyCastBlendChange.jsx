@@ -16,7 +16,7 @@ export default function SkyCastBlendChange({ weightChanges, activeVarChange }) {
       <div className="overview-card-header">
         <div>
           <span className="card-section-tag">BLENDER WEIGHT DYNAMICS</span>
-          <h3 className="overview-card-title">SKYCAST BLEND EVOLUTION & WEIGHT REBALANCING</h3>
+          <h3 className="overview-card-title">BHARATWEATHER BLEND EVOLUTION & WEIGHT REBALANCING</h3>
         </div>
         <div className="blend-pill-badge">
           <ShieldCheck size={16} color="#0284c7" />

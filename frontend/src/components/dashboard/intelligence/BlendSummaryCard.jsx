@@ -24,7 +24,7 @@ export default function BlendSummaryCard({ data }) {
     <div className="overview-card blend-summary-box-card">
       <div className="blend-summary-header">
         <div className="card-section-tag">OPTIMAL COMPOSITE</div>
-        <h3 className="overview-card-title">SKYCAST BLEND</h3>
+        <h3 className="overview-card-title">BHARATWEATHER BLEND</h3>
       </div>
 
       <div className="blend-summary-center">

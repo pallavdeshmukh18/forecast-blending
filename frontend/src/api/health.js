@@ -20,7 +20,7 @@ export async function checkBackendStatus(options = {}) {
   const latency = Math.round(performance.now() - start);
 
   if (!res.isLive) {
-    console.warn('[SkyCast Backend Probe] Connection probe failed:', res.error?.message || res.error);
+    console.warn('[BharatWeather Backend Probe] Connection probe failed:', res.error?.message || res.error);
   }
 
   return {

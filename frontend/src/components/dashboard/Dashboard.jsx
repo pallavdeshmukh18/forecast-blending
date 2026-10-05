@@ -78,12 +78,19 @@ export default function Dashboard({ user, onLogout }) {
     <div className="dashboard-app-root">
       {/* Top Operational Navigation */}
       <header className="dashboard-topbar">
-        <div className="d-topbar-left">
+        <div
+          className="d-topbar-left portal-brand-clickable"
+          role="link"
+          tabIndex={0}
+          onClick={onLogout}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLogout(); } }}
+          title="Return to BharatWeather Landing Page"
+        >
           <div className="nav-logo-icon" style={{ width: 36, height: 36 }}>
             <Cloud size={20} fill="white" strokeWidth={1.5} />
           </div>
           <div>
-            <div className="d-platform-title">SkyCast Operational Portal</div>
+            <div className="d-platform-title">BharatWeather Operational Portal</div>
             <div className="d-platform-sub">Hybrid AI–NWP Forecast Blending Platform</div>
           </div>
         </div>
@@ -152,7 +159,7 @@ export default function Dashboard({ user, onLogout }) {
         <main className={`dashboard-main-content ${selectedTab === 'weather-map' ? 'map-mode' : ''}`}>
           {selectedTab === 'weather-map' ? (
             <div className="dashboard-map-shell">
-              <WeatherMapWorkspace />
+              <WeatherMapWorkspace onNavigateHome={onLogout} />
             </div>
           ) : selectedTab === 'overview' ? (
             <Overview onNavigateTab={setSelectedTab} />

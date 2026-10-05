@@ -44,7 +44,7 @@ export default function Hero({ weatherData, onExploreClick }) {
           </h1>
 
           <p className="hero-description">
-            AI-powered forecasts that blend global weather models to deliver
+            BharatWeather delivers AI-powered forecasts that blend global weather models for
             more accurate, reliable and easy-to-understand information for a safer
             and more resilient India.
           </p>

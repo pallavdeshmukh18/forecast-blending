@@ -41,7 +41,7 @@ export default function ModelForecastsMiniCard({ forecastsData, unit }) {
       <div className="forecasts-mini-blend-row">
         <div className="blend-mini-title">
           <ShieldCheck size={16} className="blend-shield-icon" />
-          <span className="blend-brand-text">SkyCast Blend</span>
+          <span className="blend-brand-text">BharatWeather Blend</span>
         </div>
         <span className="blend-mini-val">
           <strong>{blendValue}</strong> {unitLabel}

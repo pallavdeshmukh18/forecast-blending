@@ -34,7 +34,7 @@ export default function UncertaintyInterpretation({ data, locationName }) {
         <div className={`interp-callout-box ${isLowDisagreement ? 'callout-green' : 'callout-amber'}`}>
           {isLowDisagreement ? (
             <p>
-              The individual forecasting systems are closely grouped around the SkyCast blend with an inter-model spread of {spread} {unit}, indicating low model disagreement and heightened forecast confidence.
+              The individual forecasting systems are closely grouped around the BharatWeather blend with an inter-model spread of {spread} {unit}, indicating low model disagreement and heightened forecast confidence.
             </p>
           ) : (
             <p>

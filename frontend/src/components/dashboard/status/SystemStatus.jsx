@@ -46,7 +46,7 @@ export default function SystemStatus() {
         <div className="overview-header-left">
           <h1 className="overview-title">System Status</h1>
           <p className="overview-subtitle">
-            Monitor the health of SkyCast services and forecasting infrastructure
+            Monitor the health of BharatWeather services and forecasting infrastructure
           </p>
         </div>
 

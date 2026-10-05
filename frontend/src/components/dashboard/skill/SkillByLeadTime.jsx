@@ -90,7 +90,7 @@ export default function SkillByLeadTime({ leadTimeHorizons, unit, varName }) {
 
       <div className="leadtime-summary-explainer">
         <span>
-          Verification errors naturally scale with lead time due to non-linear atmospheric chaos. The adaptive SkyCast blend demonstrates superior persistence in error suppression across extended horizons (+48h and +72h).
+          Verification errors naturally scale with lead time due to non-linear atmospheric chaos. The adaptive BharatWeather blend demonstrates superior persistence in error suppression across extended horizons (+48h and +72h).
         </span>
       </div>
     </div>

@@ -319,7 +319,7 @@ pip install -r requirements.txt
 
 ## 10. Real-Time Operational Forecasting (Live Mode)
 
-SkyCast provides an operational live-data inference layer built around the validated research forecasting and blending framework.
+BharatWeather provides an operational live-data inference layer built around the validated research forecasting and blending framework.
 
 ### 10.1 Live Data Provider
 * **Provider**: Open-Meteo Weather Forecast API (free, open-access, zero credentials required).
@@ -346,11 +346,11 @@ Every operational payload records `retrieved_at` in UTC and computes data age in
 * **🔴 EXPIRED / UNAVAILABLE**: Data age $> 180$ minutes.
 
 ### 10.6 Operational Fallback Hierarchy
-In production environments, weather data availability can vary. SkyCast implements a deterministic, fail-safe fallback hierarchy:
+In production environments, weather data availability can vary. BharatWeather implements a deterministic, fail-safe fallback hierarchy:
 ```text
 LIVE OPERATIONAL DATA FETCH
        ↓ (if successful)
-Adaptive SkyCast Blending & EMOS Calibration
+Adaptive BharatWeather Blending & EMOS Calibration
        ↓ (if provider fails / times out)
 Latest Fresh Local Disk Cache Hit
        ↓ (if fresh cache unavailable)

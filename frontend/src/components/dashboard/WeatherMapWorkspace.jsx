@@ -235,8 +235,8 @@ function AdvancedBlenderModal({open,model,onSelect,onClose}){
 function OperationalMenuDrawer({isOpen,onClose,basemap,setBasemap,health,gridCount,onExportJSON,labelsVisible,setLabelsVisible,hazardsVisible,setHazardsVisible}){
   if(!isOpen)return null
   const docsUrl=`${apiClient.baseUrl}/docs`
-  return <div className="menu-drawer-backdrop" onClick={onClose}><div className="menu-drawer-panel" role="dialog" aria-label="SkyCast operations and settings" onClick={e=>e.stopPropagation()}>
-    <div className="drawer-header"><h3>SkyCast Operations & Settings</h3><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
+  return <div className="menu-drawer-backdrop" onClick={onClose}><div className="menu-drawer-panel" role="dialog" aria-label="BharatWeather operations and settings" onClick={e=>e.stopPropagation()}>
+    <div className="drawer-header"><h3>BharatWeather Operations & Settings</h3><button className="drawer-close" onClick={onClose} aria-label="Close"><X size={20}/></button></div>
     <div className="drawer-body">
       <div className="drawer-section"><h4>🗺️ Map Basemap Style</h4><div className="drawer-grid">{Object.entries(BASEMAPS).map(([k,b])=><button key={k} className={`drawer-choice ${basemap===k?'active':''}`} onClick={()=>setBasemap(k)}>{b.label}</button>)}</div></div>
       <div className="drawer-section"><h4>⚡ System Health & Connection</h4><div className="status-box">
@@ -259,7 +259,7 @@ function OperationalMenuDrawer({isOpen,onClose,basemap,setBasemap,health,gridCou
   </div></div>
 }
 
-export default function WeatherMapWorkspace(){
+export default function WeatherMapWorkspace({onNavigateHome}){
   const [layer,setLayer]=useState('wind'),[frame,setFrame]=useState(2),[playing,setPlaying]=useState(false),[selected,setSelected]=useState(null),[particles,setParticles]=useState(true),[overlayOpacity,setOverlayOpacity]=useState(.42)
   const [model,setModel]=useState('regime_blender'),[unit,setUnit]=useState('kmh'),[is3D,setIs3D]=useState(false),[labelsVisible,setLabelsVisible]=useState(true)
   const [moreOpen,setMoreOpen]=useState(false),[drawerOpen,setDrawerOpen]=useState(false),[cycleOpen,setCycleOpen]=useState(false),[toast,setToast]=useState(null)
@@ -403,14 +403,14 @@ export default function WeatherMapWorkspace(){
     const payload={exported_at_utc:new Date().toISOString(),layer,blender_requested:model,lead_hours:hour,cycle_utc:cycle,blend_weights:weightBars,pipeline_forecast:forecastResult,live_grid:windGrid,selected_location:selected?{name:selected.name,coordinates:selected.coordinates,live_forecast:liveSel?.forecast||null}:null}
     const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}))
     const a=document.createElement('a')
-    a.href=url;a.download=`skycast-forecast-${layer}-${model}-t${hour}h.json`;a.click()
+    a.href=url;a.download=`bharatweather-forecast-${layer}-${model}-t${hour}h.json`;a.click()
     setTimeout(()=>URL.revokeObjectURL(url),1000)
     notify('Forecast payload exported')
   }
   const share=()=>navigator.clipboard?.writeText(location.href).then(()=>notify('Link copied to clipboard'),()=>notify('Could not copy link'))
   const cycleLabel=`${new Date(cycleBase).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'UTC'})} · ${pad2(cycle)} UTC`
 
-  return <main className="windy-app"><WeatherMap {...{layer,selected,setSelected,mapRef,fieldGeoJSON,overlayOpacity,labelsVisible,basemap}}/>{windGrid?<LiveWindParticles enabled={particles&&layer==='wind'} grid={windGrid} mapRef={mapRef}/>:<ParticleCanvas enabled={particles&&layer==='wind'} layer={layer}/>}<HazardMarkers mapRef={mapRef} hazards={hazards} active={layer==='extremes'&&hazardsVisible}/><SearchBox onPick={setSelected} onLocate={locate}/><button className="share" onClick={share} title="Copy link"><Upload/></button><div className="center-brand"><span><Wind/></span><b>AtmosFlow</b><small>weather intelligence</small></div>
+  return <main className="windy-app"><WeatherMap {...{layer,selected,setSelected,mapRef,fieldGeoJSON,overlayOpacity,labelsVisible,basemap}}/>{windGrid?<LiveWindParticles enabled={particles&&layer==='wind'} grid={windGrid} mapRef={mapRef}/>:<ParticleCanvas enabled={particles&&layer==='wind'} layer={layer}/>}<HazardMarkers mapRef={mapRef} hazards={hazards} active={layer==='extremes'&&hazardsVisible}/><SearchBox onPick={setSelected} onLocate={locate}/><button className="share" onClick={share} title="Copy link"><Upload/></button><div className="center-brand portal-brand-clickable" role="link" tabIndex={0} title="Return to BharatWeather Landing Page" onClick={()=>onNavigateHome?onNavigateHome():(window.location.hash='#home')} onKeyDown={e=>{if(e.key==='Enter')(onNavigateHome||(()=>{window.location.hash='#home'}))()}}><span><Wind/></span><b>BharatWeather</b><small>weather intelligence</small></div>
     <div className="top-actions"><div className="cycle-wrap"><button className="run-select" onClick={()=>setCycleOpen(!cycleOpen)}>{cycleLabel} <ChevronDown/></button>{cycleOpen&&<div className="cycle-menu">{CYCLES.map(c=><button key={c} className={c===cycle?'active':''} onClick={()=>{setCycle(c);setCycleOpen(false)}}>{pad2(c)} UTC{c===cycle&&<Check/>}</button>)}<small>The cycle shifts valid times and the live-grid hour. The synthetic forecast archive has no per-cycle runs.</small></div>}</div><button className={`api-status ${apiState.status}`} title="Forecast engine telemetry"><i/>{apiState.message}{hour>48&&!isLiveLayer?' · archive max +48h':''}</button><button className="login" onClick={()=>setIsMenuOpen(true)}><Menu size={18}/> Menu</button></div>
     <LayerRail {...{layer,setLayer}} openDrawer={()=>setDrawerOpen(true)}/><LayersDrawer open={drawerOpen} layer={layer} setLayer={setLayer} onClose={()=>setDrawerOpen(false)}/>
     {selected&&<LocationPopup city={selected} layer={layer} hour={hour} result={forecastResult} live={liveSel&&{...liveSel,liveCell}} unit={unit} bars={weightBars?.bars} onClose={()=>setSelected(null)}/>}

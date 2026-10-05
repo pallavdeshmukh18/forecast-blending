@@ -20,7 +20,7 @@ export default function Header({ onSearchLocation, currentLocation, onLogin }) {
             <Cloud size={22} fill="white" strokeWidth={1.5} />
           </div>
           <div className="nav-brand-text">
-            <span className="brand-name">SkyCast</span>
+            <span className="brand-name">BharatWeather</span>
             <span className="brand-tagline">AI for a Safer Tomorrow</span>
           </div>
         </a>

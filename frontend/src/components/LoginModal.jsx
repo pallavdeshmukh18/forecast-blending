@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Cloud, Lock, Mail, ArrowRight, X, Shield, Sparkles } from 'lucide-react';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
-  const [email, setEmail] = useState('meteorologist@skycast.ai');
+  const [email, setEmail] = useState('meteorologist@bharatweather.ai');
   const [password, setPassword] = useState('••••••••••••');
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +28,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       onLoginSuccess({
         name: 'Dr. Anuj G.',
         role: 'Senior Research Meteorologist',
-        email: 'meteorologist@skycast.ai'
+        email: 'meteorologist@bharatweather.ai'
       });
     }, 400);
   };
@@ -46,7 +46,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           <div className="login-modal-logo">
             <Cloud size={24} fill="white" strokeWidth={1.5} />
           </div>
-          <h2 className="login-modal-title">Sign in to SkyCast</h2>
+          <h2 className="login-modal-title">Sign in to BharatWeather</h2>
           <p className="login-modal-subtitle">
             Access the Hybrid AI–NWP Forecast Blending &amp; Verification Platform
           </p>

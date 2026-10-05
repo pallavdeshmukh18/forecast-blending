@@ -101,11 +101,11 @@ export default function ForecastAgreement({ forecastData }) {
           {/* Active range interval */}
           <div className="range-bar-gradient"></div>
 
-          {/* SkyCast Blend marker */}
+          {/* BharatWeather Blend marker */}
           <div
             className="range-marker blend-marker"
             style={{ left: `${blendPercent}%` }}
-            title={`SkyCast Blend: ${blendVal} ${unit}`}
+            title={`BharatWeather Blend: ${blendVal} ${unit}`}
           >
             <div className="marker-pin"></div>
             <div className="marker-tooltip">Blend {blendVal}</div>

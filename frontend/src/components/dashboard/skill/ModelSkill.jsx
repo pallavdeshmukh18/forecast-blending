@@ -165,7 +165,7 @@ export default function ModelSkill() {
             />
           </section>
 
-          {/* Section 7: SkyCast Blend Performance */}
+          {/* Section 7: BharatWeather Blend Performance */}
           <section className="skill-section">
             <SkyCastBlendPerformance
               blendPerformance={skillData.blendPerformance}

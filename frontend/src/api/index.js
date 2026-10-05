@@ -1,5 +1,5 @@
 /**
- * Centralized API Layer for SkyCast
+ * Centralized API Layer for BharatWeather
  * Re-exports all API clients, endpoint functions, and data adapters.
  */
 

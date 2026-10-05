@@ -22,7 +22,7 @@ export default function SkyCastBlendPerformance({ blendPerformance, unit }) {
       <div className="overview-card-header">
         <div>
           <span className="card-section-tag">HYBRID VALUE ADD</span>
-          <h3 className="overview-card-title">SKYCAST BLEND PERFORMANCE</h3>
+          <h3 className="overview-card-title">BHARATWEATHER BLEND PERFORMANCE</h3>
         </div>
         <div className="blend-pill-badge">
           <ShieldCheck size={16} color="#0284c7" />
@@ -31,9 +31,9 @@ export default function SkyCastBlendPerformance({ blendPerformance, unit }) {
       </div>
 
       <div className="blend-metrics-summary-grid">
-        {/* Metric 1: SkyCast Blend RMSE */}
+        {/* Metric 1: BharatWeather Blend RMSE */}
         <div className="blend-metric-box">
-          <span className="b-box-label">SkyCast Blend RMSE</span>
+          <span className="b-box-label">BharatWeather Blend RMSE</span>
           <div className="b-box-val-row">
             <span className="b-val-number">{perf.blendRmse.toFixed(2)}</span>
             <span className="b-val-unit">{unit}</span>

@@ -87,7 +87,7 @@ export default function Overview({ onNavigateTab }) {
     initTime: 'Latest Analysis',
     status: 'Live Active',
     sources: 'Open-Meteo Operational Feed',
-    blending: 'SkyCast Adaptive Engine',
+    blending: 'BharatWeather Adaptive Engine',
     calibration: 'Gaussian / ZI-Gamma EMOS',
     duration: '18 ms',
   });
@@ -192,7 +192,7 @@ export default function Overview({ onNavigateTab }) {
           setRegimeData({
             name: step.regime ? step.regime.replace('_', ' ').toUpperCase() : 'STABLE',
             confidence: '88%',
-            description: `Operational live forecast for +${step.lead_time_hours}h valid at ${step.valid_time_utc.slice(11, 16)} UTC. Evaluated via SkyCast dynamic blending.`,
+            description: `Operational live forecast for +${step.lead_time_hours}h valid at ${step.valid_time_utc.slice(11, 16)} UTC. Evaluated via BharatWeather dynamic blending.`,
           });
           setRegimeKey(step.regime || 'stable');
 
@@ -240,7 +240,7 @@ export default function Overview({ onNavigateTab }) {
           initTime: forecastRes?.initialization_time_utc?.slice(11, 16) ? `${forecastRes.initialization_time_utc.slice(11, 16)} UTC` : 'Live Stream',
           status: statusData?.freshness === 'fresh' ? 'Live Stream Active' : 'Cached Fallback',
           sources: `${statusData?.provider || 'Open-Meteo'} Operational Feed`,
-          blending: 'SkyCast Adaptive Engine',
+          blending: 'BharatWeather Adaptive Engine',
           calibration: 'Gaussian / ZI-Gamma EMOS',
           duration: `${statusData?.latency_ms || 42} ms`,
         });
@@ -401,7 +401,7 @@ export default function Overview({ onNavigateTab }) {
         <div style={{ background: '#064e3b', border: '1px solid #059669', borderRadius: '8px', padding: '8px 14px', marginBottom: '16px', color: '#a7f3d0', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Activity size={15} style={{ flexShrink: 0, color: '#34d399' }} />
           <span>
-            <strong>Live Operational Mode Active:</strong> Ingesting real-time observations and operational multi-horizon forecasts from <strong>Open-Meteo</strong>. Blended via SkyCast adaptive algorithms. Auto-refreshing every 5 minutes.
+            <strong>Live Operational Mode Active:</strong> Ingesting real-time observations and operational multi-horizon forecasts from <strong>Open-Meteo</strong>. Blended via BharatWeather adaptive algorithms. Auto-refreshing every 5 minutes.
           </span>
         </div>
       ) : (

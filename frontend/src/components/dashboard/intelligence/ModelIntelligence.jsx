@@ -46,7 +46,7 @@ export default function ModelIntelligence() {
       <div className="overview-header intelligence-header">
         <div className="overview-header-left">
           <h1 className="overview-title">MODEL INTELLIGENCE</h1>
-          <p className="overview-subtitle">Why SkyCast made this forecast</p>
+          <p className="overview-subtitle">Why BharatWeather made this forecast</p>
         </div>
 
         <div className="overview-header-right">

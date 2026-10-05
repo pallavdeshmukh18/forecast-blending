@@ -1,5 +1,5 @@
 /**
- * SkyCast Meteorological Platform - API Client Service
+ * BharatWeather Meteorological Platform - API Client Service
  * Connects to the FastAPI operational backend at http://localhost:8000
  * Provides robust fallbacks when backend is offline or starting up.
  */
@@ -632,7 +632,7 @@ export function generateFallbackExtremeWeather(
         { id: 'graphcast', name: 'GraphCast', prob: Math.max(1, heatProb - 6), forecast: isHeatProne ? '38.9°C' : '31.0°C' },
         { id: 'pangu', name: 'Pangu-Weather', prob: Math.max(1, heatProb - 2), forecast: isHeatProne ? '39.2°C' : '31.3°C' },
         { id: 'regional_wrf', name: 'Regional WRF', prob: Math.max(1, heatProb - 8), forecast: isHeatProne ? '38.6°C' : '30.8°C' },
-        { id: 'skycast', name: 'SkyCast Blend', prob: heatProb, forecast: isHeatProne ? '39.4°C' : '31.4°C' },
+        { id: 'skycast', name: 'BharatWeather Blend', prob: heatProb, forecast: isHeatProne ? '39.4°C' : '31.4°C' },
       ],
       timeline: [
         { horizon: '+6h', prob: Math.round(heatProb * 0.35), forecast: isHeatProne ? '34.2°C' : '29.5°C' },
@@ -669,7 +669,7 @@ export function generateFallbackExtremeWeather(
         { id: 'graphcast', name: 'GraphCast', prob: Math.max(1, windProb - 5), forecast: isWindProne ? '30 km/h' : '21 km/h' },
         { id: 'pangu', name: 'Pangu-Weather', prob: Math.max(1, windProb - 2), forecast: isWindProne ? '31 km/h' : '22 km/h' },
         { id: 'regional_wrf', name: 'Regional WRF', prob: Math.max(1, windProb - 6), forecast: isWindProne ? '29 km/h' : '20 km/h' },
-        { id: 'skycast', name: 'SkyCast Blend', prob: windProb, forecast: isWindProne ? '32 km/h' : '22 km/h' },
+        { id: 'skycast', name: 'BharatWeather Blend', prob: windProb, forecast: isWindProne ? '32 km/h' : '22 km/h' },
       ],
       timeline: [
         { horizon: '+6h', prob: Math.round(windProb * 0.4), forecast: isWindProne ? '22 km/h' : '18 km/h' },
@@ -708,7 +708,7 @@ export function generateFallbackExtremeWeather(
         { id: 'graphcast', name: 'GraphCast', prob: Math.max(1, rainProb - 17), forecast: isRainProne ? '39 mm' : '12 mm' },
         { id: 'pangu', name: 'Pangu-Weather', prob: Math.max(1, rainProb - 10), forecast: isRainProne ? '43 mm' : '14 mm' },
         { id: 'regional_wrf', name: 'Regional WRF', prob: Math.max(1, rainProb - 22), forecast: isRainProne ? '37 mm' : '11 mm' },
-        { id: 'skycast', name: 'SkyCast Blend', prob: rainProb, forecast: isRainProne ? '42 mm' : '14 mm' },
+        { id: 'skycast', name: 'BharatWeather Blend', prob: rainProb, forecast: isRainProne ? '42 mm' : '14 mm' },
       ],
       timeline: [
         { horizon: '+6h', prob: Math.round(rainProb * 0.3), forecast: isRainProne ? '12 mm' : '4 mm' },
@@ -801,7 +801,7 @@ export function generateFallbackModelSkill(location = 'mumbai', variable = 'rain
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', mae: 1.05, rmse: 1.38, bias: -0.08, corr: 0.95, crps: 0.58, crpss: 0.21, picp: 0.90, brier: 0.07, histRmse: 1.42 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', mae: 1.18, rmse: 1.52, bias: -0.12, corr: 0.93, crps: 0.64, crpss: 0.12, picp: 0.87, brier: 0.09, histRmse: 1.55 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', mae: 1.51, rmse: 1.95, bias: 0.42, corr: 0.88, crps: 0.84, crpss: -0.15, picp: 0.80, brier: 0.14, histRmse: 1.92 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', mae: 0.88, rmse: 1.15, bias: 0.02, corr: 0.97, crps: 0.48, crpss: 0.34, picp: 0.94, brier: 0.05, histRmse: 1.22, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', mae: 0.88, rmse: 1.15, bias: 0.02, corr: 0.97, crps: 0.48, crpss: 0.34, picp: 0.94, brier: 0.05, histRmse: 1.22, isBlend: true },
     ];
   } else if (variable === 'wind') {
     unit = 'km/h';
@@ -812,7 +812,7 @@ export function generateFallbackModelSkill(location = 'mumbai', variable = 'rain
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', mae: 3.28, rmse: 4.35, bias: -0.20, corr: 0.90, crps: 1.74, crpss: 0.11, picp: 0.85, brier: 0.12, histRmse: 4.48 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', mae: 3.48, rmse: 4.60, bias: -0.28, corr: 0.88, crps: 1.85, crpss: 0.06, picp: 0.83, brier: 0.13, histRmse: 4.70 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', mae: 3.65, rmse: 4.85, bias: 0.48, corr: 0.87, crps: 1.95, crpss: 0.01, picp: 0.82, brier: 0.14, histRmse: 4.78 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', mae: 2.55, rmse: 3.40, bias: 0.06, corr: 0.95, crps: 1.35, crpss: 0.31, picp: 0.92, brier: 0.08, histRmse: 3.58, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', mae: 2.55, rmse: 3.40, bias: 0.06, corr: 0.95, crps: 1.35, crpss: 0.31, picp: 0.92, brier: 0.08, histRmse: 3.58, isBlend: true },
     ];
   } else {
     // Default Rainfall
@@ -824,7 +824,7 @@ export function generateFallbackModelSkill(location = 'mumbai', variable = 'rain
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', mae: 3.45, rmse: 4.95, bias: -0.15, corr: 0.91, crps: 1.95, crpss: 0.20, picp: 0.86, brier: 0.14, histRmse: 5.12 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', mae: 3.98, rmse: 5.62, bias: -0.31, corr: 0.87, crps: 2.21, crpss: 0.09, picp: 0.83, brier: 0.17, histRmse: 5.75 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', mae: 4.31, rmse: 6.18, bias: 0.54, corr: 0.84, crps: 2.45, crpss: -0.01, picp: 0.81, brier: 0.19, histRmse: 6.10 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', mae: 2.89, rmse: 4.12, bias: 0.04, corr: 0.94, crps: 1.62, crpss: 0.33, picp: 0.91, brier: 0.10, histRmse: 4.35, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', mae: 2.89, rmse: 4.12, bias: 0.04, corr: 0.94, crps: 1.62, crpss: 0.33, picp: 0.91, brier: 0.10, histRmse: 4.35, isBlend: true },
     ];
   }
 
@@ -1019,7 +1019,7 @@ export function generateFallbackUncertainty(location = 'mumbai', variable = 'rai
     { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', forecast: 39.0, delta: -3.0 },
     { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', forecast: 43.0, delta: 1.0 },
     { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', forecast: 37.0, delta: -5.0 },
-    { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', forecast: 42.0, delta: 0.0, isBlend: true },
+    { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', forecast: 42.0, delta: 0.0, isBlend: true },
   ];
 
   if (variable === 'temperature') {
@@ -1045,7 +1045,7 @@ export function generateFallbackUncertainty(location = 'mumbai', variable = 'rai
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', forecast: 29.1, delta: -0.3 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', forecast: 29.6, delta: 0.2 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', forecast: 28.5, delta: -0.9 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', forecast: 29.4, delta: 0.0, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', forecast: 29.4, delta: 0.0, isBlend: true },
     ];
   } else if (variable === 'wind') {
     unit = 'km/h';
@@ -1070,7 +1070,7 @@ export function generateFallbackUncertainty(location = 'mumbai', variable = 'rai
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', forecast: 17.8, delta: -0.7 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', forecast: 18.9, delta: 0.4 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', forecast: 17.1, delta: -1.4 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', forecast: 18.5, delta: 0.0, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', forecast: 18.5, delta: 0.0, isBlend: true },
     ];
   }
 
@@ -1253,7 +1253,7 @@ export function generateFallbackForecastChanges(location = 'mumbai', variable = 
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', previous: 28.5, current: 29.1, change: 0.6 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', previous: 28.9, current: 29.6, change: 0.7 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', previous: 28.0, current: 28.5, change: 0.5 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', previous: 29.8, current: 31.2, change: 1.4, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', previous: 29.8, current: 31.2, change: 1.4, isBlend: true },
     ];
   } else if (variable === 'wind') {
     modelChanges = [
@@ -1262,7 +1262,7 @@ export function generateFallbackForecastChanges(location = 'mumbai', variable = 
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', previous: 18.9, current: 17.8, change: -1.1 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', previous: 19.7, current: 18.9, change: -0.8 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', previous: 18.2, current: 17.1, change: -1.1 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', previous: 19.5, current: 17.8, change: -1.7, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', previous: 19.5, current: 17.8, change: -1.7, isBlend: true },
     ];
   } else {
     modelChanges = [
@@ -1271,7 +1271,7 @@ export function generateFallbackForecastChanges(location = 'mumbai', variable = 
       { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', previous: 35.0, current: 39.0, change: 4.0 },
       { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', previous: 38.5, current: 43.0, change: 4.5 },
       { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res NWP', previous: 34.0, current: 37.0, change: 3.0 },
-      { id: 'skycast', name: 'SkyCast Blend', type: 'Adaptive Hybrid', previous: 36.2, current: 42.0, change: 5.8, isBlend: true },
+      { id: 'skycast', name: 'BharatWeather Blend', type: 'Adaptive Hybrid', previous: 36.2, current: 42.0, change: 5.8, isBlend: true },
     ];
   }
 
@@ -1286,7 +1286,7 @@ export function generateFallbackForecastChanges(location = 'mumbai', variable = 
 
   // Significant changes list
   const significantChanges = [
-    { variable: 'Rainfall', horizon: '+24h', model: 'SkyCast Blend', magnitude: '+5.8 mm', tag: 'Intensity Surge' },
+    { variable: 'Rainfall', horizon: '+24h', model: 'BharatWeather Blend', magnitude: '+5.8 mm', tag: 'Intensity Surge' },
     { variable: 'Rainfall', horizon: '+48h', model: 'ECMWF IFS', magnitude: '+6.5 mm', tag: 'Convective Amplification' },
     { variable: 'Temperature', horizon: '+24h', model: 'NOAA GFS', magnitude: '+1.6°C', tag: 'Heat Accumulation' },
   ];
@@ -1630,7 +1630,7 @@ export function generateFallbackSystemStatus() {
       },
       {
         id: 'frontend_client',
-        name: 'SkyCast Operational UI',
+        name: 'BharatWeather Operational UI',
         status: 'Operational',
         latency: '2ms',
         version: 'v1.0.0 (Vite)',
@@ -1696,7 +1696,7 @@ export function generateFallbackSystemStatus() {
       },
       {
         id: 'skycast_blend',
-        name: 'SkyCast Blend',
+        name: 'BharatWeather Blend',
         status: 'Active',
         type: 'Adaptive Hybrid',
         resolution: 'Multi-Res Blended',

@@ -1,5 +1,5 @@
 /**
- * Centralized HTTP API Client for SkyCast Frontend
+ * Centralized HTTP API Client for BharatWeather Frontend
  * Connects React UI to the FastAPI operational backend.
  * Uses VITE_API_BASE_URL environment variable with fallback to http://localhost:8000.
  */
@@ -109,7 +109,7 @@ async function request(endpoint, options = {}) {
       ? `Request timed out after ${timeoutMs}ms for ${endpoint}`
       : `Network connection failed to ${url} (${err.message})`;
 
-    console.warn(`[SkyCast API] ${netErrMsg}`);
+    console.warn(`[BharatWeather API] ${netErrMsg}`);
 
     throw new ApiError({
       message: netErrMsg,

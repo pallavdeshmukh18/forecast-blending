@@ -33,8 +33,8 @@ export default function WhySkyCastSection() {
     <section className="why-section">
       <div className="container">
         <div className="section-header">
-          <span className="section-tag">WHY SKYCAST</span>
-          <h2 className="section-title">More Than Just a Forecast</h2>
+          <span className="section-tag">WHY BHARATWEATHER</span>
+          <h2 className="section-title">Why BharatWeather: More Than Just a Forecast</h2>
           <p className="section-subtitle">Deeper insights for better decisions.</p>
         </div>
 

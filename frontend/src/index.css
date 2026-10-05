@@ -1,4 +1,4 @@
-/* SkyCast Design System - Vanilla CSS */
+/* BharatWeather Design System - Vanilla CSS */
 :root {
   --primary: #1e70eb;
   --primary-hover: #145cd3;
@@ -1039,7 +1039,7 @@ body {
 }
 
 /* ========================================================
-   SECTION 4: WHY SKYCAST
+   SECTION 4: WHY BHARATWEATHER
    ======================================================== */
 .why-section {
   padding: 90px 0 100px 0;
