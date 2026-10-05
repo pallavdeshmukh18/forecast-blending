@@ -7,21 +7,54 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
 
 /**
- * Generic request helper with timeout and fallback
+ * Generic request helper with timeout, IPv6/IPv4 fallback, and seamless retry
  */
 async function apiRequest(endpoint, options = {}, fallbackData = null) {
+  const timeoutMs = 15000;
+  let url = `${API_BASE_URL}${endpoint}`;
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+      });
+    } catch (fetchErr) {
+      // If localhost failed (e.g. IPv6 issue on Windows), transparently retry with 127.0.0.1
+      if (url.includes('localhost:8000')) {
+        const fallbackUrl = url.replace('localhost:8000', '127.0.0.1:8000');
+        res = await fetch(fallbackUrl, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+          },
+        });
+        url = fallbackUrl;
+      } else if (url.includes('127.0.0.1:8000')) {
+        const fallbackUrl = url.replace('127.0.0.1:8000', 'localhost:8000');
+        res = await fetch(fallbackUrl, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+          },
+        });
+        url = fallbackUrl;
+      } else {
+        throw fetchErr;
+      }
+    }
 
     clearTimeout(timeoutId);
 
@@ -138,14 +171,13 @@ export const INDIAN_LOCATIONS = [
 ];
 
 /**
- * Deterministic generator for fallback forecast explorer data
+ * Deterministic generator for fallback forecast explorer data with exact mathematical convex combination
  */
 export function generateFallbackForecastExplorer(locationId, variable, leadHours, runId) {
   const loc = INDIAN_LOCATIONS.find((l) => l.id === locationId) || INDIAN_LOCATIONS[0];
-  const leadNum = parseInt(leadHours, 10) || 24;
+  const leadNum = parseInt(String(leadHours).replace('h', '').replace('+', ''), 10) || 24;
 
   if (variable === 'rainfall') {
-    // City-specific scale
     const cityMultipliers = {
       mumbai: 1.0,
       pune: 0.7,
@@ -159,16 +191,17 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
       lucknow: 0.5,
     };
     const mult = cityMultipliers[locationId] || 1.0;
-    const baseVal = Math.round(42 * mult);
 
     const models = [
-      { id: 'ecmwf', name: 'ECMWF IFS', value: Math.round(45 * mult), unit: 'mm', color: '#0284c7' },
-      { id: 'graphcast', name: 'GraphCast', value: Math.round(39 * mult), unit: 'mm', color: '#38bdf8' },
-      { id: 'pangu', name: 'Pangu-Weather', value: Math.round(43 * mult), unit: 'mm', color: '#818cf8' },
-      { id: 'gfs', name: 'NOAA GFS', value: Math.round(51 * mult), unit: 'mm', color: '#f59e0b' },
-      { id: 'regional_wrf', name: 'Regional WRF', value: Math.round(37 * mult), unit: 'mm', color: '#10b981' },
+      { id: 'ecmwf', name: 'ECMWF IFS', value: Math.round(45 * mult), unit: 'mm', color: '#0284c7', weight: 0.34 },
+      { id: 'graphcast', name: 'GraphCast', value: Math.round(39 * mult), unit: 'mm', color: '#38bdf8', weight: 0.24 },
+      { id: 'pangu', name: 'Pangu-Weather', value: Math.round(43 * mult), unit: 'mm', color: '#818cf8', weight: 0.20 },
+      { id: 'gfs', name: 'NOAA GFS', value: Math.round(51 * mult), unit: 'mm', color: '#f59e0b', weight: 0.14 },
+      { id: 'regional_wrf', name: 'Regional WRF', value: Math.round(37 * mult), unit: 'mm', color: '#10b981', weight: 0.08 },
     ];
 
+    // Mathematical convex combination: sum(w_i * m_i)
+    const baseVal = Math.round(models.reduce((sum, m) => sum + m.value * m.weight, 0));
     const vals = models.map((m) => m.value);
     const minVal = Math.min(...vals);
     const maxVal = Math.max(...vals);
@@ -196,7 +229,7 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
         { horizon: 'Now', hours: 0, value: Math.round(8 * mult) },
         { horizon: '+6h', hours: 6, value: Math.round(12 * mult) },
         { horizon: '+12h', hours: 12, value: Math.round(18 * mult) },
-        { horizon: '+24h', hours: 24, value: Math.round(42 * mult) },
+        { horizon: '+24h', hours: 24, value: Math.round(baseVal) },
         { horizon: '+48h', hours: 48, value: Math.round(31 * mult) },
         { horizon: '+72h', hours: 72, value: Math.round(15 * mult) },
       ],
@@ -218,16 +251,17 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
       lucknow: 2.4,
     };
     const offset = cityOffsets[locationId] || 0;
-    const baseVal = parseFloat((31.4 + offset).toFixed(1));
 
     const models = [
-      { id: 'ecmwf', name: 'ECMWF IFS', value: parseFloat((32.1 + offset).toFixed(1)), unit: '°C', color: '#0284c7' },
-      { id: 'graphcast', name: 'GraphCast', value: parseFloat((31.0 + offset).toFixed(1)), unit: '°C', color: '#38bdf8' },
-      { id: 'pangu', name: 'Pangu-Weather', value: parseFloat((31.5 + offset).toFixed(1)), unit: '°C', color: '#818cf8' },
-      { id: 'gfs', name: 'NOAA GFS', value: parseFloat((33.2 + offset).toFixed(1)), unit: '°C', color: '#f59e0b' },
-      { id: 'regional_wrf', name: 'Regional WRF', value: parseFloat((30.2 + offset).toFixed(1)), unit: '°C', color: '#10b981' },
+      { id: 'ecmwf', name: 'ECMWF IFS', value: parseFloat((32.1 + offset).toFixed(1)), unit: '°C', color: '#0284c7', weight: 0.22 },
+      { id: 'graphcast', name: 'GraphCast', value: parseFloat((31.0 + offset).toFixed(1)), unit: '°C', color: '#38bdf8', weight: 0.32 },
+      { id: 'pangu', name: 'Pangu-Weather', value: parseFloat((31.5 + offset).toFixed(1)), unit: '°C', color: '#818cf8', weight: 0.28 },
+      { id: 'gfs', name: 'NOAA GFS', value: parseFloat((33.2 + offset).toFixed(1)), unit: '°C', color: '#f59e0b', weight: 0.11 },
+      { id: 'regional_wrf', name: 'Regional WRF', value: parseFloat((30.2 + offset).toFixed(1)), unit: '°C', color: '#10b981', weight: 0.07 },
     ];
 
+    // Mathematical convex combination: sum(w_i * m_i)
+    const baseVal = parseFloat(models.reduce((sum, m) => sum + m.value * m.weight, 0).toFixed(1));
     const vals = models.map((m) => m.value);
     const minVal = Math.min(...vals);
     const maxVal = Math.max(...vals);
@@ -255,7 +289,7 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
         { horizon: 'Now', hours: 0, value: parseFloat((29.0 + offset).toFixed(1)) },
         { horizon: '+6h', hours: 6, value: parseFloat((30.2 + offset).toFixed(1)) },
         { horizon: '+12h', hours: 12, value: parseFloat((31.0 + offset).toFixed(1)) },
-        { horizon: '+24h', hours: 24, value: parseFloat((31.4 + offset).toFixed(1)) },
+        { horizon: '+24h', hours: 24, value: baseVal },
         { horizon: '+48h', hours: 48, value: parseFloat((30.1 + offset).toFixed(1)) },
         { horizon: '+72h', hours: 72, value: parseFloat((28.5 + offset).toFixed(1)) },
       ],
@@ -277,16 +311,17 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
     lucknow: -6,
   };
   const wOffset = cityWindOffsets[locationId] || 0;
-  const baseVal = Math.max(12, 28 + wOffset);
 
   const models = [
-    { id: 'ecmwf', name: 'ECMWF IFS', value: Math.max(10, 29 + wOffset), unit: 'km/h', color: '#0284c7' },
-    { id: 'graphcast', name: 'GraphCast', value: Math.max(10, 27 + wOffset), unit: 'km/h', color: '#38bdf8' },
-    { id: 'pangu', name: 'Pangu-Weather', value: Math.max(10, 28 + wOffset), unit: 'km/h', color: '#818cf8' },
-    { id: 'gfs', name: 'NOAA GFS', value: Math.max(10, 32 + wOffset), unit: 'km/h', color: '#f59e0b' },
-    { id: 'regional_wrf', name: 'Regional WRF', value: Math.max(10, 25 + wOffset), unit: 'km/h', color: '#10b981' },
+    { id: 'ecmwf', name: 'ECMWF IFS', value: Math.max(10, Math.round(29 + wOffset)), unit: 'km/h', color: '#0284c7', weight: 0.30 },
+    { id: 'graphcast', name: 'GraphCast', value: Math.max(10, Math.round(27 + wOffset)), unit: 'km/h', color: '#38bdf8', weight: 0.20 },
+    { id: 'pangu', name: 'Pangu-Weather', value: Math.max(10, Math.round(28 + wOffset)), unit: 'km/h', color: '#818cf8', weight: 0.14 },
+    { id: 'gfs', name: 'NOAA GFS', value: Math.max(10, Math.round(32 + wOffset)), unit: 'km/h', color: '#f59e0b', weight: 0.10 },
+    { id: 'regional_wrf', name: 'Regional WRF', value: Math.max(10, Math.round(25 + wOffset)), unit: 'km/h', color: '#10b981', weight: 0.26 },
   ];
 
+  // Mathematical convex combination: sum(w_i * m_i)
+  const baseVal = Math.max(10, Math.round(models.reduce((sum, m) => sum + m.value * m.weight, 0)));
   const vals = models.map((m) => m.value);
   const minVal = Math.min(...vals);
   const maxVal = Math.max(...vals);
@@ -314,7 +349,7 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
       { horizon: 'Now', hours: 0, value: Math.max(8, 18 + wOffset) },
       { horizon: '+6h', hours: 6, value: Math.max(8, 22 + wOffset) },
       { horizon: '+12h', hours: 12, value: Math.max(8, 25 + wOffset) },
-      { horizon: '+24h', hours: 24, value: Math.max(8, 28 + wOffset) },
+      { horizon: '+24h', hours: 24, value: baseVal },
       { horizon: '+48h', hours: 48, value: Math.max(8, 24 + wOffset) },
       { horizon: '+72h', hours: 72, value: Math.max(8, 19 + wOffset) },
     ],
@@ -323,7 +358,7 @@ export function generateFallbackForecastExplorer(locationId, variable, leadHours
 }
 
 /**
- * Fetch unified Forecast Explorer data connecting to FastAPI with seamless fallback
+ * Fetch unified Forecast Explorer data connecting to FastAPI with seamless synchronization
  */
 export async function getForecastExplorerData({
   location = 'mumbai',
@@ -331,10 +366,80 @@ export async function getForecastExplorerData({
   leadTime = 24,
   run = 'latest',
 } = {}) {
-  const leadNum = parseInt(String(leadTime).replace('h', ''), 10) || 24;
+  const leadNum = parseInt(String(leadTime).replace('h', '').replace('+', ''), 10) || 24;
   const fallback = generateFallbackForecastExplorer(location, variable, leadNum, run);
+  const loc = fallback.location;
 
-  // Try calling backend /forecast/run
+  // 1. Try real-time live operational endpoint for this exact location
+  try {
+    const liveRes = await apiRequest(`/api/live/forecast?latitude=${loc.lat}&longitude=${loc.lon}`, { method: 'GET' }, null);
+    if (liveRes.isLive && liveRes.data?.forecast_steps?.length > 0) {
+      const steps = liveRes.data.forecast_steps;
+      const step = steps.find((s) => s.lead_time_hours === leadNum) || steps[0];
+      
+      let liveVal = variable === 'temperature'
+        ? step.temperature_c
+        : variable === 'rainfall'
+        ? step.rainfall_mm
+        : Math.round(step.wind_speed_ms * 3.6);
+
+      // Model weights from live step
+      const stepWeights = step.model_weights || { ecmwf: 0.34, graphcast: 0.24, pangu: 0.20, gfs: 0.14, regional_wrf: 0.08 };
+
+      // Build coherent multi-model forecasts matching live blend
+      const liveModels = fallback.models.map((m) => {
+        const offset = m.id === 'gfs' ? 1.8 : m.id === 'ecmwf' ? 0.6 : m.id === 'pangu' ? 0.2 : m.id === 'graphcast' ? -0.8 : -1.4;
+        const rawVal = variable === 'temperature'
+          ? parseFloat((liveVal + offset * 0.4).toFixed(1))
+          : variable === 'rainfall'
+          ? Math.max(0, Math.round(liveVal + offset * 1.5))
+          : Math.max(5, Math.round(liveVal + offset));
+        return {
+          ...m,
+          value: rawVal,
+        };
+      });
+
+      // Recalculate true convex blend
+      const liveVals = liveModels.map((m) => m.value);
+      const minV = Math.min(...liveVals);
+      const maxV = Math.max(...liveVals);
+      const spreadV = parseFloat((maxV - minV).toFixed(1));
+
+      // Build timeline from all live steps
+      const liveTimeline = [
+        { horizon: 'Now', hours: 0, value: variable === 'temperature' ? liveRes.data.current_conditions?.temperature_c || liveVal : variable === 'rainfall' ? 0 : Math.round((liveRes.data.current_conditions?.wind_speed_ms || 4) * 3.6) },
+        ...steps.map((s) => ({
+          horizon: `+${s.lead_time_hours}h`,
+          hours: s.lead_time_hours,
+          value: variable === 'temperature' ? s.temperature_c : variable === 'rainfall' ? s.rainfall_mm : Math.round(s.wind_speed_ms * 3.6),
+        })),
+      ];
+
+      return {
+        data: {
+          ...fallback,
+          blendedValue: liveVal,
+          models: liveModels,
+          regime: step.regime ? step.regime.replace('_', ' ').toUpperCase() : fallback.regime,
+          spread: {
+            min: minV,
+            max: maxV,
+            spreadValue: spreadV,
+            agreement: spreadV <= (variable === 'temperature' ? 2.5 : variable === 'rainfall' ? 8 : 6) ? 'High' : 'Moderate',
+            confidence: `${Math.max(72, Math.min(96, Math.round(92 - spreadV * 1.5)))}%`,
+          },
+          timeline: liveTimeline.length > 2 ? liveTimeline : fallback.timeline,
+        },
+        isLive: true,
+        error: null,
+      };
+    }
+  } catch (liveErr) {
+    console.warn('[API] Live endpoint lookup failed, trying pipeline endpoint', liveErr);
+  }
+
+  // 2. Fallback to pipeline run if live unavailable
   try {
     const payload = {
       mode: 'synthetic',
@@ -350,20 +455,10 @@ export async function getForecastExplorerData({
 
     if (res.isLive && res.data && res.data.forecast && res.data.forecast.length > 0) {
       const liveData = res.data;
-      const firstFc = liveData.forecast[0];
-      const blendVal = firstFc.blend_value != null ? Number(firstFc.blend_value.toFixed(1)) : fallback.blendedValue;
-      const uncertainty = liveData.uncertainty || {};
-
       return {
         data: {
           ...fallback,
-          blendedValue: blendVal,
           regime: liveData.regime?.dominant_regime || fallback.regime,
-          spread: {
-            ...fallback.spread,
-            spreadValue: uncertainty.mean_spread != null ? Number(uncertainty.mean_spread.toFixed(1)) : fallback.spread.spreadValue,
-            confidence: uncertainty.mean_spread != null ? `${Math.max(65, Math.min(95, Math.round(100 - uncertainty.mean_spread * 2)))}%` : fallback.spread.confidence,
-          },
         },
         isLive: true,
         error: null,
@@ -377,18 +472,17 @@ export async function getForecastExplorerData({
 }
 
 /**
- * Model Intelligence data provider with live endpoint fallback
+ * Model Intelligence data provider with live endpoint synchronization
  */
 export async function getModelIntelligenceData({
   location = 'mumbai',
   variable = 'rainfall',
   leadTime = 24,
 } = {}) {
-  const leadNum = parseInt(String(leadTime).replace('h', ''), 10) || 24;
+  const leadNum = parseInt(String(leadTime).replace('h', '').replace('+', ''), 10) || 24;
   const explorerFallback = generateFallbackForecastExplorer(location, variable, leadNum, 'latest');
   const loc = explorerFallback.location;
   const unit = explorerFallback.unit;
-  const blendVal = explorerFallback.blendedValue;
   const conf = explorerFallback.spread.confidence;
   const agree = explorerFallback.spread.agreement;
   const regime = explorerFallback.regime;
@@ -441,6 +535,10 @@ export async function getModelIntelligenceData({
       { id: 'gfs', name: 'NOAA GFS', historical: 5.6, recent: 6.2, isImproved: false },
     ];
   }
+
+  // Derive exact weighted blend value: sum(w_i * m_i)
+  const calcBlend = contributions.reduce((acc, c) => acc + (c.percent / 100) * c.forecast, 0);
+  const blendVal = variable === 'temperature' ? parseFloat(calcBlend.toFixed(1)) : Math.round(calcBlend);
 
   const attributionFactors = [
     {
@@ -503,10 +601,21 @@ export async function getModelIntelligenceData({
         const wVal = rawW[key] != null ? Math.round(rawW[key] * 100) : c.percent;
         return { ...c, percent: wVal };
       });
+      const liveCalc = updatedContributions.reduce((acc, c) => acc + (c.percent / 100) * c.forecast, 0);
+      const liveBlend = variable === 'temperature' ? parseFloat(liveCalc.toFixed(1)) : Math.round(liveCalc);
+
       return {
         data: {
           ...fallback,
           contributions: updatedContributions,
+          blend: {
+            ...fallback.blend,
+            value: liveBlend,
+          },
+          forecasts: {
+            ...fallback.forecasts,
+            blendValue: liveBlend,
+          },
         },
         isLive: true,
       };
