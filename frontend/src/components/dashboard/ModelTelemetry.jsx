@@ -2,43 +2,43 @@ import React from 'react';
 import { Activity } from 'lucide-react';
 
 export default function ModelTelemetry({ modelsData }) {
-  const models = [
-    {
-      id: 'ecmwf',
-      name: 'ECMWF IFS',
-      type: 'Global NWP',
-      status: modelsData?.ecmwf?.status || 'Online',
-      latency: modelsData?.ecmwf?.latency || '48ms',
-    },
-    {
-      id: 'graphcast',
-      name: 'GraphCast',
-      type: 'AI Neural',
-      status: modelsData?.graphcast?.status || 'Online',
-      latency: modelsData?.graphcast?.latency || '12ms',
-    },
-    {
-      id: 'pangu',
-      name: 'Pangu-Weather',
-      type: 'AI Transformer',
-      status: modelsData?.pangu?.status || 'Online',
-      latency: modelsData?.pangu?.latency || '14ms',
-    },
-    {
-      id: 'gfs',
-      name: 'NOAA GFS',
-      type: 'Global NWP',
-      status: modelsData?.gfs?.status || 'Online',
-      latency: modelsData?.gfs?.latency || '35ms',
-    },
-    {
-      id: 'regional_wrf',
-      name: 'Regional WRF',
-      type: 'High-Res WRF',
-      status: modelsData?.regional_wrf?.status || 'Online',
-      latency: modelsData?.regional_wrf?.latency || '62ms',
-    },
+  const defaultModels = [
+    { id: 'ecmwf', name: 'ECMWF IFS', type: 'Global NWP', status: 'Online', latency: '48ms' },
+    { id: 'graphcast', name: 'GraphCast', type: 'AI Neural', status: 'Online', latency: '12ms' },
+    { id: 'pangu', name: 'Pangu-Weather', type: 'AI Transformer', status: 'Online', latency: '14ms' },
+    { id: 'gfs', name: 'NOAA GFS', type: 'Global NWP', status: 'Online', latency: '35ms' },
+    { id: 'regional_wrf', name: 'Regional WRF', type: 'High-Res WRF', status: 'Online', latency: '62ms' },
   ];
+
+  let models = defaultModels;
+  if (modelsData && typeof modelsData === 'object' && Object.keys(modelsData).length > 0) {
+    const dataKeys = Object.keys(modelsData);
+    const isLiveFeed = dataKeys.includes('open_meteo') || dataKeys.includes('skycast_blend');
+    
+    if (isLiveFeed) {
+      models = dataKeys.map((k) => {
+        const item = modelsData[k];
+        return {
+          id: k,
+          name: item?.name || (k === 'open_meteo' ? 'Open-Meteo Feed' : k === 'skycast_blend' ? 'SkyCast Blending' : k === 'emos_engine' ? 'EMOS Calibration' : k.toUpperCase()),
+          type: item?.type || 'Operational Pipeline Component',
+          status: item?.status || 'Online',
+          latency: item?.latency || '35ms',
+        };
+      });
+    } else {
+      models = defaultModels.map((m) => {
+        const liveSpec = modelsData[m.id];
+        return {
+          ...m,
+          name: liveSpec?.name || m.name,
+          type: liveSpec?.type || m.type,
+          status: liveSpec?.status || m.status,
+          latency: liveSpec?.latency || m.latency,
+        };
+      });
+    }
+  }
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {

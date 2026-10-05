@@ -79,26 +79,40 @@ export function adaptKpis({
   weightsData = null,
   alertsData = null,
 } = {}) {
-  // 1. Rainfall Risk: Exceedance probability or extreme alert count
-  let rainfallPercent = '68%';
-  let rainfallLevel = 'High';
+  // 1. Rainfall Risk: Exceedance probability, actual expected accumulation, or extreme alert count
+  let rainfallPercent = '15%';
+  let rainfallLevel = 'Low';
+
+  const rainExtract = extractForecastValue(rainForecast);
+  const rMean = rainExtract ? rainExtract.mean : null;
 
   if (alertsData?.extreme_rainfall_alerts_count != null) {
     const count = alertsData.extreme_rainfall_alerts_count;
-    rainfallPercent = count >= 3 ? '78%' : count >= 1 ? '55%' : '20%';
+    rainfallPercent = count >= 3 ? '78%' : count >= 1 ? '55%' : '15%';
     rainfallLevel = count >= 3 ? 'High' : count >= 1 ? 'Moderate' : 'Low';
   } else if (rainForecast?.probabilities && rainForecast.probabilities.length > 0) {
     const maxProb = Math.max(...rainForecast.probabilities.map((p) => p.probability || 0));
     rainfallPercent = `${Math.round(maxProb * 100)}%`;
-    rainfallLevel = maxProb > 0.5 ? 'High' : 'Moderate';
-  } else if (rainForecast?.uncertainty?.crps != null) {
-    rainfallPercent = '68%';
-    rainfallLevel = 'High';
+    rainfallLevel = maxProb > 0.5 ? 'High' : maxProb > 0.2 ? 'Moderate' : 'Low';
+  } else if (rMean != null) {
+    if (rMean >= 25) {
+      rainfallPercent = '82%';
+      rainfallLevel = 'High';
+    } else if (rMean >= 8) {
+      rainfallPercent = '52%';
+      rainfallLevel = 'Moderate';
+    } else if (rMean > 0.5) {
+      rainfallPercent = '25%';
+      rainfallLevel = 'Low';
+    } else {
+      rainfallPercent = '5%';
+      rainfallLevel = 'Low';
+    }
   }
 
   // 2. Temperature: Central expected forecast value
-  let tempValue = '34.8°C';
-  let tempChange = '+1.2°C';
+  let tempValue = '31.4°C';
+  let tempChange = '±0.8°C';
   const tempExtract = extractForecastValue(tempForecast);
   if (tempExtract) {
     const meanVal = tempExtract.mean;
@@ -107,7 +121,7 @@ export function adaptKpis({
   }
 
   // 3. Wind: Central expected forecast value
-  let windValue = '42 km/h';
+  let windValue = '28 km/h';
   let windLevel = 'Moderate';
   const windExtract = extractForecastValue(windForecast);
   if (windExtract) {
@@ -122,7 +136,7 @@ export function adaptKpis({
   let confidenceStatus = 'High agreement';
   const activeWeights = weightsData?.weights || rainForecast?.weights || tempForecast?.weights || windForecast?.weights;
   if (activeWeights && Object.keys(activeWeights).length > 0) {
-    const weightsList = Object.values(activeWeights);
+    const weightsList = Array.isArray(activeWeights) ? activeWeights.map(w => typeof w === 'object' ? (w.percent || 0) / 100 : Number(w)) : Object.values(activeWeights);
     const maxW = Math.max(...weightsList);
     confidencePercent = maxW >= 0.33 ? '87%' : '76%';
     confidenceStatus = maxW >= 0.33 ? 'High agreement' : 'Moderate agreement';
@@ -145,34 +159,33 @@ export function adaptForecastSummary({
   windForecast = null,
 } = {}) {
   // Rainfall
-  let rainVal = '42 mm';
-  let rainChange = '↑ 8 mm';
+  let rainVal = '0 mm';
+  let rainChange = 'Dry / Clear';
   const rainExtract = extractForecastValue(rainForecast);
   if (rainExtract) {
-    const val = Math.round(rainExtract.mean);
-    const displayVal = val > 0 ? val : 42;
-    rainVal = `${displayVal} mm`;
-    rainChange = '↑ 8 mm';
+    const val = Math.round(rainExtract.mean * 10) / 10;
+    rainVal = `${val} mm`;
+    rainChange = val >= 25 ? '↑ Heavy Rain' : val >= 8 ? '↑ Moderate' : val > 0 ? 'Light rain' : 'Dry / Clear';
   }
 
   // Temperature
   let tempVal = '31.4°C';
-  let tempChange = '↓ 0.6°C';
+  let tempChange = '±0.8°C';
   const tempExtract = extractForecastValue(tempForecast);
   if (tempExtract) {
     tempVal = `${tempExtract.mean.toFixed(1)}°C`;
-    tempChange = '↓ 0.6°C';
+    tempChange = tempExtract.mean >= 32 ? '↑ 1.2°C' : '↓ 0.6°C';
   }
 
   // Wind
   let windVal = '28 km/h';
-  let windChange = '↑ 4 km/h';
+  let windChange = 'Light breeze';
   const windExtract = extractForecastValue(windForecast);
   if (windExtract) {
     const wRaw = windExtract.mean;
     const wVal = Math.round(wRaw < 25 ? wRaw * 3.6 : wRaw);
     windVal = `${wVal} km/h`;
-    windChange = '↑ 4 km/h';
+    windChange = wVal >= 45 ? '↑ Gale Warning' : wVal >= 25 ? '↑ Moderate' : 'Light breeze';
   }
 
   return {

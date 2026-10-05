@@ -75,10 +75,18 @@ export default function ForecastSummary({ leadTime, onLeadTimeChange, data }) {
 
               <div className="metric-values">
                 <span className="metric-main-val">{m.value}</span>
-                <span className={`metric-change-badge ${m.isIncrease ? 'up' : 'down'}`}>
-                  {m.isIncrease ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
-                  <span>{m.change.replace(/[↑↓]\s*/, '')}</span>
-                </span>
+                {(() => {
+                  const isUp = m.change.includes('↑') || m.change.includes('+');
+                  const isDown = m.change.includes('↓') || m.change.includes('-');
+                  const cleanText = m.change.replace(/^[↑↓]\s*/, '');
+                  return (
+                    <span className={`metric-change-badge ${isUp ? 'up' : isDown ? 'down' : 'neutral'}`}>
+                      {isUp && <ArrowUp size={12} strokeWidth={2.5} />}
+                      {isDown && <ArrowDown size={12} strokeWidth={2.5} />}
+                      <span>{cleanText}</span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           );
