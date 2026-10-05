@@ -13,6 +13,9 @@ const MODEL_COLOR_MAP = {
   nwp_model_a: '#0284c7',
   nwp_model_b: '#f59e0b',
   ai_model_c: '#38bdf8',
+  ai_graphcast_ensemble: '#38bdf8',
+  ecmwf_ifs: '#0284c7',
+  gfs_seamless: '#f59e0b',
 };
 
 const MODEL_DISPLAY_NAMES = {
@@ -24,6 +27,9 @@ const MODEL_DISPLAY_NAMES = {
   nwp_model_a: 'ECMWF IFS (NWP-A)',
   nwp_model_b: 'NOAA GFS (NWP-B)',
   ai_model_c: 'GraphCast (AI-C)',
+  ai_graphcast_ensemble: 'GraphCast v2',
+  ecmwf_ifs: 'ECMWF HRES',
+  gfs_seamless: 'GFS / Baseline',
 };
 
 const REGIME_DISPLAY_NAMES = {
@@ -46,7 +52,7 @@ const REGIME_DESCRIPTIONS = {
   stable: 'Weak synoptic forcing and quiescent atmospheric stratification across the forecast area.',
 };
 
-/**
+/** Extract first/mean blended value from a forecast response. */
 function extractForecastValue(forecastRes) {
   if (!forecastRes?.forecast || !Array.isArray(forecastRes.forecast) || forecastRes.forecast.length === 0) {
     return null;
@@ -339,3 +345,5 @@ export function adaptLatestRun({ diagRes = null, forecastRes = null } = {}) {
     duration: `${durationSec} sec`,
   };
 }
+
+export { REGIME_DISPLAY_NAMES, REGIME_DESCRIPTIONS };

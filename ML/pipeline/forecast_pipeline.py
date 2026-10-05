@@ -18,7 +18,7 @@ from ingestion.synthetic import SyntheticDataGenerator
 from ingestion.quality_control import apply_quality_control, DataQualityReport
 from preprocessing.weather_regimes import extract_atmospheric_features, RuleBasedRegimeClassifier
 from models.baseline import equal_weight_blend
-from models.skill_weighting import InverseVarianceSkillBlender
+from models.skill_weighting import InverseVarianceSkillBlender, InverseMAESkillBlender
 from models.regime_blending import RegimeInverseVarianceBlender
 from models.probabilistic import ProbabilisticForecastEngine
 from models.extreme_calibration import ExtremeProbabilityEngine
@@ -141,10 +141,24 @@ class ForecastPipelineOrchestrator:
         models_present = valid_f["model_name"].unique().tolist()
         weights_dict = {}
 
-        if blender_method == "equal_weight" or len(models_present) <= 1:
+        # Methods requested by the UI that have no dedicated pipeline implementation
+        # (gating networks, EMOS calibrators, constrained ridge) run as the regime blender;
+        # the effective method is reported in diagnostics so clients can show it honestly.
+        effective_blender = blender_method
+        if blender_method not in ("equal_weight", "inverse_variance", "inverse_mae", "regime_blender"):
+            effective_blender = "regime_blender"
+        if len(models_present) <= 1:
+            effective_blender = "equal_weight"
+
+        if effective_blender == "equal_weight":
             blended_df = equal_weight_blend(regime_df)
             weights_dict = {m: round(1.0 / len(models_present), 4) for m in models_present}
-        elif blender_method == "inverse_variance":
+        elif effective_blender == "inverse_mae":
+            blender = InverseMAESkillBlender(config=self.config)
+            blender.fit(regime_df)
+            blended_df = blender.predict(regime_df)
+            weights_dict = blender.get_weights(variable=variable, lead_time=lead_time)
+        elif effective_blender == "inverse_variance":
             blender = InverseVarianceSkillBlender(config=self.config)
             # Fit on available slice or fallback
             blender.fit(regime_df)
@@ -224,6 +238,7 @@ class ForecastPipelineOrchestrator:
         exec_time_ms = round((time.time() - start_time) * 1000.0, 2)
         diagnostics["execution_time_ms"] = exec_time_ms
         diagnostics["blender_method"] = blender_method
+        diagnostics["blender_method_effective"] = effective_blender
         diagnostics["models_incorporated"] = models_present
 
         # Regime summary

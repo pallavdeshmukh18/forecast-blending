@@ -66,4 +66,21 @@ export function forecastToGeoJSON(result, layer) {
   }
 }
 
+export const variableForLayer = (layer) => variableMap[layer] || 'rainfall'
+
+/** |F(lead) - F(previous lead)| per grid cell (rows matched on lat/lng). Null if either run is missing. */
+export function changeGeoJSON(current, previous) {
+  if (!current?.forecast || !previous?.forecast) return null
+  const key = (r) => `${Number(r.latitude).toFixed(3)},${Number(r.longitude).toFixed(3)}`
+  const prev = new Map(previous.forecast.map((r) => [key(r), Number(r.blend_value || 0)]))
+  const features = current.forecast
+    .filter((r) => prev.has(key(r)))
+    .map((r) => ({
+      type: 'Feature',
+      properties: { value: Number(r.blend_value || 0) - prev.get(key(r)), isCenter: 0 },
+      geometry: { type: 'Point', coordinates: [Number(r.longitude), Number(r.latitude)] }
+    }))
+  return features.length ? { type: 'FeatureCollection', features } : null
+}
+
 export { API_BASE }

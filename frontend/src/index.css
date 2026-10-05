@@ -9161,3 +9161,34 @@ body {
   opacity: 0.88;
   transition: opacity 0.2s ease;
 }
+
+/* Operational menu drawer */
+.menu-drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:1000;display:flex;justify-content:flex-end}
+.menu-drawer-panel{width:360px;max-width:90vw;height:100%;background:#0f172a;color:#f8fafc;padding:20px;box-shadow:-4px 0 24px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:20px;animation:slideInRight .25s ease-out;overflow-y:auto}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:12px}
+.drawer-header h3{margin:0;font-size:16px}
+.drawer-close{background:none;border:0;color:#cbd5e1;cursor:pointer;display:grid;place-items:center}
+.drawer-body{display:flex;flex-direction:column}
+.drawer-section{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.drawer-section h4{margin:0 0 2px;font-size:12.5px;color:#e2e8f0}
+.drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.drawer-choice{background:#1e293b;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;padding:9px 8px;border-radius:8px;font-size:12px;cursor:pointer}
+.drawer-choice.active{background:#1d4ed8;border-color:#60a5fa}
+.drawer-action-btn{display:flex;align-items:center;gap:8px;background:#1e293b;border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 14px;border-radius:8px;cursor:pointer;transition:all .2s ease;font-size:12.5px;text-align:left}
+.drawer-action-btn:hover{background:#334155}
+.status-box{background:#1e293b;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6}
+.status-box p{margin:0}
+.drawer-toggle{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:6px 2px}
+.drawer-toggle input{width:16px;height:16px;accent-color:#d89900}
+
+/* Advanced blenders modal */
+.blender-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
+.blender-modal-card{width:460px;max-width:90vw;max-height:80vh;background:#0f172a;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.6);color:#f8fafc;display:flex;flex-direction:column;overflow:hidden;animation:modalScaleIn .2s cubic-bezier(.16,1,.3,1)}
+@keyframes modalScaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.blender-modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.08);font-size:15px}
+.blender-modal-body{padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.blender-option{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;background:#1e293b;border:1px solid rgba(255,255,255,.08);color:#f8fafc;padding:12px 14px;border-radius:10px;cursor:pointer;font-size:13px}
+.blender-option:hover{background:#273449}.blender-option.active{border-color:#d89900;background:rgba(216,153,0,.15)}
+.blender-option b,.blender-option small{display:block}.blender-option small{font-size:11px;color:#94a3b8;margin-top:3px}
+.blender-note{margin:0;font-size:11px;color:#94a3b8;line-height:1.5}

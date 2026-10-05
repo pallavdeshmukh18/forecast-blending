@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, AlertCircle, Radio, Activity, ShieldCheck, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, AlertCircle, Radio, Activity, ShieldCheck, Clock, MapPin } from 'lucide-react';
+import LiveStatusBadge from '../LiveStatusBadge';
+import useLiveStatus from '../../hooks/useLiveStatus';
+import { CITIES_DATA } from '../InteractiveMapSection';
 import OverviewKpiCards from './OverviewKpiCards';
 import ForecastSummary from './ForecastSummary';
 import WeatherRegimeCard from './WeatherRegimeCard';
@@ -18,21 +21,26 @@ import {
   getLiveCurrent,
   getLiveForecast,
   getLiveAlerts,
+  getLiveDisagreement,
+  getBlendingWeights,
+  classifyRegimes,
   overviewAdapter,
 } from '../../api';
 
 export default function Overview({ onNavigateTab }) {
   const [operationalMode, setOperationalMode] = useState('live'); // 'live' | 'research'
   const [leadTime, setLeadTime] = useState('24h');
+  const [cityKey, setCityKey] = useState('mumbai');
+  const [disagreementData, setDisagreementData] = useState(null);
+  const [regimeKey, setRegimeKey] = useState(null);
   const [lastUpdated, setLastUpdated] = useState('');
   const [isLiveConnected, setIsLiveConnected] = useState(false);
-  const [liveFreshness, setLiveFreshness] = useState('fresh');
-  const [liveDataAge, setLiveDataAge] = useState(0);
+  const [, setLiveFreshness] = useState('fresh');
+  const [, setLiveDataAge] = useState(0);
   const [liveProvider, setLiveProvider] = useState('Open-Meteo');
-  const [backendVersion, setBackendVersion] = useState(null);
+  const [, setBackendVersion] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [backendNotice, setBackendNotice] = useState(null);
-  const refreshTimerRef = useRef(null);
 
   // Operational state data populated from backend adapter
   const [kpiData, setKpiData] = useState({
@@ -96,6 +104,7 @@ export default function Overview({ onNavigateTab }) {
     setBackendNotice(null);
 
     const leadNum = parseInt(leadTime.replace('h', '').replace('+', ''), 10) || 24;
+    const { lat: latitude, lng: longitude } = CITIES_DATA[cityKey] || CITIES_DATA.mumbai;
 
     try {
       // 1. Probe FastAPI health endpoint
@@ -112,17 +121,29 @@ export default function Overview({ onNavigateTab }) {
 
       if (operationalMode === 'live') {
         // --- LIVE OPERATIONAL MODE ---
-        const [liveStatusRes, liveCurrentRes, liveForecastRes, liveAlertsRes] = await Promise.allSettled([
+        const [liveStatusRes, liveCurrentRes, liveForecastRes, liveAlertsRes, liveDisRes, weightsRes] = await Promise.allSettled([
           getLiveStatus(),
-          getLiveCurrent({ forceRefresh: false }),
-          getLiveForecast({ leadTime: leadNum, forceRefresh: false }),
-          getLiveAlerts(),
+          getLiveCurrent({ latitude, longitude }),
+          getLiveForecast({ latitude, longitude }),
+          getLiveAlerts({ latitude, longitude }),
+          getLiveDisagreement({ latitude, longitude }),
+          getBlendingWeights({ variable: 'rainfall', leadTime: leadNum }),
         ]);
 
         const statusData = liveStatusRes.status === 'fulfilled' ? liveStatusRes.value : null;
         const currentData = liveCurrentRes.status === 'fulfilled' ? liveCurrentRes.value : null;
         const forecastRes = liveForecastRes.status === 'fulfilled' ? liveForecastRes.value : null;
         const alertsData = liveAlertsRes.status === 'fulfilled' ? liveAlertsRes.value : null;
+        const disData = liveDisRes.status === 'fulfilled' ? liveDisRes.value : null;
+        const blendWeights = weightsRes.status === 'fulfilled' ? weightsRes.value : null;
+
+        setDisagreementData(disData);
+        if (blendWeights?.weights) {
+          setWeightsData({
+            ...overviewAdapter.adaptModelAgreement({ weightsRes: blendWeights }),
+            source: `GET /blending/weights · ${blendWeights.blender} · rainfall +${leadNum}h`,
+          });
+        }
 
         if (statusData) {
           setLiveFreshness(statusData.freshness || 'fresh');
@@ -173,6 +194,26 @@ export default function Overview({ onNavigateTab }) {
             confidence: '88%',
             description: `Operational live forecast for +${step.lead_time_hours}h valid at ${step.valid_time_utc.slice(11, 16)} UTC. Evaluated via SkyCast dynamic blending.`,
           });
+          setRegimeKey(step.regime || 'stable');
+
+          // Atmospheric regime from the backend rule-based classifier (POST /regimes/classify)
+          try {
+            const cls = await classifyRegimes({
+              records: [{ temperature: step.temperature_c, rainfall: step.rainfall_mm, wind_speed: step.wind_speed_ms }],
+            });
+            const rec = cls?.classified_records?.[0];
+            if (rec?.weather_regime) {
+              const key = rec.weather_regime;
+              setRegimeKey(key);
+              setRegimeData({
+                name: overviewAdapter.REGIME_DISPLAY_NAMES[key] || key.replace('_', ' ').toUpperCase(),
+                confidence: rec.regime_confidence != null ? `${Math.round(rec.regime_confidence * 100)}%` : 'Rule-based',
+                description: `${overviewAdapter.REGIME_DESCRIPTIONS[key] || ''} (+${step.lead_time_hours}h: ${step.temperature_c}°C, ${step.rainfall_mm} mm/6h, ${step.wind_speed_ms} m/s)`,
+              });
+            }
+          } catch (clsErr) {
+            console.warn('[Overview] regime classification unavailable:', clsErr);
+          }
         }
 
         if (alertsData?.alerts) {
@@ -242,25 +283,15 @@ export default function Overview({ onNavigateTab }) {
       setIsLoading(false);
       updateTimestamp();
     }
-  }, [leadTime, operationalMode]);
+  }, [leadTime, operationalMode, cityKey]);
 
   // Initial load and on mode/leadTime change
   useEffect(() => {
     fetchOverviewData();
   }, [fetchOverviewData]);
 
-  // Auto-refresh every 5 minutes in live mode (300,000 ms)
-  useEffect(() => {
-    if (operationalMode === 'live') {
-      refreshTimerRef.current = setInterval(() => {
-        console.log('[Overview] Auto-refreshing live operational data...');
-        fetchOverviewData();
-      }, 300000);
-    }
-    return () => {
-      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-    };
-  }, [operationalMode, fetchOverviewData]);
+  // Badge owns the 5-minute auto-refresh countdown and status polling
+  const liveClock = useLiveStatus({ onRefresh: operationalMode === 'live' ? fetchOverviewData : undefined });
 
   return (
     <div className="overview-page-container">
@@ -322,21 +353,35 @@ export default function Overview({ onNavigateTab }) {
             </button>
           </div>
 
+          {operationalMode === 'live' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '5px 10px', color: '#e2e8f0', fontSize: 12, fontWeight: 600 }}>
+              <MapPin size={12} />
+              <select
+                value={cityKey}
+                onChange={(e) => setCityKey(e.target.value)}
+                aria-label="Forecast location"
+                style={{ background: 'transparent', color: 'inherit', border: 0, fontSize: 12, fontWeight: 600, outline: 'none' }}
+              >
+                {Object.entries(CITIES_DATA).map(([k, c]) => (
+                  <option key={k} value={k} style={{ color: '#0f172a' }}>{c.city}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <div className="last-updated-pill">
             <Clock size={12} style={{ marginRight: 4 }} />
             <span className="last-updated-time">{lastUpdated || '14:00 IST'}</span>
           </div>
 
-          <div className={`live-status-indicator ${isLiveConnected ? (operationalMode === 'live' ? 'connected' : 'research') : 'standby'}`}>
-            <span className="live-status-dot"></span>
-            <span>
-              {isLiveConnected
-                ? operationalMode === 'live'
-                  ? `LIVE (${liveFreshness.toUpperCase()}, ${Math.round(liveDataAge)}m ago)`
-                  : `RESEARCH (WeatherBench 2)`
-                : 'Backend Standby (Offline)'}
-            </span>
-          </div>
+          {operationalMode === 'live' ? (
+            <LiveStatusBadge live={liveClock} />
+          ) : (
+            <div className={`live-status-indicator ${isLiveConnected ? 'research' : 'standby'}`}>
+              <span className="live-status-dot"></span>
+              <span>{isLiveConnected ? 'RESEARCH (WeatherBench 2)' : 'Backend Standby (Offline)'}</span>
+            </div>
+          )}
 
           <button
             type="button"
@@ -391,7 +436,7 @@ export default function Overview({ onNavigateTab }) {
           onLeadTimeChange={setLeadTime}
           data={forecastData}
         />
-        <WeatherRegimeCard regimeData={regimeData} />
+        <WeatherRegimeCard regimeData={regimeData} regimeKey={operationalMode === 'live' ? regimeKey : null} />
       </section>
 
       {/* 4. Model Status / Telemetry (Full Width) */}
@@ -401,7 +446,7 @@ export default function Overview({ onNavigateTab }) {
 
       {/* 5. Model Agreement + Active Hazards (Two Columns) */}
       <section className={`overview-section two-column-grid ${isLoading ? 'is-syncing' : ''}`}>
-        <ModelAgreement weightsData={weightsData} />
+        <ModelAgreement weightsData={weightsData} disagreement={operationalMode === 'live' ? disagreementData : null} />
         <ActiveHazards
           hazardsData={hazardsData}
           onNavigateToExtremes={() => onNavigateTab && onNavigateTab('extremes')}

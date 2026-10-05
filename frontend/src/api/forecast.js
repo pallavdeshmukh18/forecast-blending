@@ -179,3 +179,34 @@ export async function getLiveMetadata(options = {}) {
   return apiClient.get('/api/live/metadata', options);
 }
 
+
+/**
+ * Retrieve model disagreement diagnostics for a location: GET /api/live/disagreement
+ */
+export async function getLiveDisagreement({ latitude, longitude } = {}, options = {}) {
+  const params = new URLSearchParams();
+  if (latitude != null) params.append('latitude', String(latitude));
+  if (longitude != null) params.append('longitude', String(longitude));
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiClient.get(`/api/live/disagreement${qs}`, options);
+}
+
+/**
+ * Retrieve gridded live wind (u10, v10), temperature, precipitation and optional
+ * ECMWF-vs-GFS disagreement: GET /api/live/wind-grid
+ */
+export async function getLiveWindGrid({ includeDisagreement = false, forceRefresh = false, hour = 0 } = {}, options = {}) {
+  const params = new URLSearchParams();
+  if (hour > 0) params.append('hour', String(hour));
+  if (includeDisagreement) params.append('include_disagreement', 'true');
+  if (forceRefresh) params.append('force_refresh', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiClient.get(`/api/live/wind-grid${qs}`, { timeout: 60000, ...options });
+}
+
+/**
+ * Classify atmospheric regime for weather records: POST /regimes/classify
+ */
+export async function classifyRegimes({ records, method = 'rule_based' } = {}, options = {}) {
+  return apiClient.post('/regimes/classify', { records, method }, options);
+}

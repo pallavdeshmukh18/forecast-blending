@@ -1,7 +1,17 @@
 import React from 'react';
 import { Compass, CheckCircle2 } from 'lucide-react';
 
-export default function WeatherRegimeCard({ regimeData }) {
+const REGIME_BADGES = {
+  convective: '#f59e0b',
+  heavy_rain: '#2563eb',
+  high_wind: '#0891b2',
+  hot_extreme: '#dc2626',
+  cold_extreme: '#6366f1',
+  transition: '#a855f7',
+  stable: '#059669',
+};
+
+export default function WeatherRegimeCard({ regimeData, regimeKey = null }) {
   const regimeName = regimeData?.name ?? 'Heavy Convective Monsoon';
   const confidence = regimeData?.confidence ?? '82%';
   const description =
@@ -29,6 +39,14 @@ export default function WeatherRegimeCard({ regimeData }) {
           </div>
           <div className="regime-title-wrap">
             <h4 className="regime-primary-name">{regimeName}</h4>
+            {regimeKey && (
+              <span
+                data-testid="regime-badge"
+                style={{ display: 'inline-block', margin: '2px 0 4px', padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', color: '#fff', background: REGIME_BADGES[regimeKey] || '#64748b' }}
+              >
+                {regimeKey}
+              </span>
+            )}
             <div className="regime-confidence-row">
               <span className="regime-conf-label">Confidence:</span>
               <span className="regime-conf-val">{confidence}</span>

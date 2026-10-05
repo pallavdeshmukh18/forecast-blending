@@ -25,6 +25,7 @@ A scientifically rigorous meteorological framework designed to dynamically blend
 11. [Quickstart & Execution Guide](#11-quickstart--execution-guide)
 12. [FastAPI Endpoints & API Reference](#12-fastapi-endpoints--api-reference)
 13. [Automated Testing & Validation](#13-automated-testing--validation)
+14. [Interactive Operational Portal & 3D WebGIS Workspace](#14-interactive-operational-portal--3d-webgis-workspace)
 
 ---
 
@@ -426,7 +427,8 @@ Dashboard URL: `http://localhost:5173`
 | `/api/live/current` | `GET` | Current surface meteorological conditions (Temp, Wind, Rain, Humidity, Pressure) |
 | `/api/live/forecast` | `GET` | Multi-horizon operational forecast (+6h to +72h) with adaptive blending & EMOS 90% CI |
 | `/api/live/alerts` | `GET` | Active extreme weather alerts (Heavy rain $\ge 15\text{mm}$, Extreme rain $\ge 35\text{mm}$, Gale wind $\ge 17.2\text{m/s}$, Heatwave $\ge 40^\circ\text{C}$) |
-| `/api/live/disagreement`| `GET` | Multi-model disagreement diagnostics across operational forecast members |
+| `/api/live/disagreement`| `GET` | Mean $|\text{ECMWF IFS} - \text{GFS}|$ over the next 24 h for temperature, wind and rainfall (Open-Meteo multi-model); falls back to "unavailable" diagnostics if the provider cannot be reached. GraphCast is not part of the live feed |
+| `/api/live/wind-grid` | `GET` | 8×8 regular grid over 6–36°N, 67–98°E with wind components ($u_{10}, v_{10}$), temperature, precipitation, humidity, MSL pressure, dew point and cloud cover. Query: `hour` (0–72, forecast hour ahead), `include_disagreement` (adds $|\text{ECMWF IFS} - \text{GFS}|$ per cell), `force_refresh`. Returns `503` if the provider is unreachable (no synthetic fallback) |
 | `/api/live/metadata` | `GET` | Live layer configuration, variables, horizons, and scientific boundaries |
 
 ### 12.2 Research & Evaluation Endpoints
@@ -464,3 +466,64 @@ python -m pytest Backend/tests -v
 * `test_robustness.py`: Missing model renormalization, corrupted model downweighting, missing observation safety.
 * `test_pipeline_orchestrator.py`: End-to-end `ForecastPipelineOrchestrator` execution.
 * `test_api.py` & `test_api_final.py`: Full endpoint contract testing for FastAPI service.
+
+---
+
+## 14. Interactive Operational Portal & 3D WebGIS Workspace
+
+The **Weather Map** tab of the dashboard (`frontend/src/components/dashboard/WeatherMapWorkspace.jsx`) is a MapLibre GL workspace in which every control is bound to map state or a backend call.
+
+### 14.1 Map Controls
+| Control | Behaviour |
+| :--- | :--- |
+| **3D** | Toggles camera pitch between $0^\circ$ (flat 2D) and $55^\circ$ with a $-15^\circ$ bearing (1 s eased transition). This is a perspective tilt of the raster basemap; no terrain elevation model is loaded |
+| **+ / −** | Zoom in / out |
+| **Locate** | Browser geolocation → flies to the position at zoom 7 and opens a popup with the live `/api/live/forecast` result for those coordinates |
+| **particles** | Toggles the wind streamline canvas (active on the *Wind* layer) |
+| **Overlay slider** | Sets heatmap opacity, $0 \le \alpha \le 0.75$ |
+| **km/h · m/s · knots** | Converts wind legend ticks, popup values and live-forecast wind; $1\ \text{m/s} = 3.6\ \text{km/h} = 1.94384\ \text{kn}$ |
+| **Settings (gear)** | Shows / hides city labels |
+| **Cycle picker** | `00/06/12/18 UTC` – shifts timeline valid times and the live-grid hour (see limitations) |
+| **Lead pills `+24h/+48h/+72h`** | Select the forecast horizon and move the timeline |
+| **Timeline** | Day/hour ticks over $t+0 \dots t+72$ h in 12 h steps; **Play** advances one step per second. Each step re-requests the live grid for that hour and re-runs the pipeline for the nearest archive lead |
+
+### 14.2 Layers
+Wind, Rainfall (mm / 6 h), Temperature (°C), Uncertainty (ensemble spread), Model weights, Extremes (pulsing markers where the live grid breaches heavy rain $\ge 15$ mm, gale $\ge 17.2$ m/s or heat $\ge 40^\circ$C) and Run change ($F_{\text{lead}} - F_{\text{previous lead}}$). **More layers** adds Relative Humidity, Mean Sea-Level Pressure, Dew Point and Cloud Cover (a model-derived infrared proxy, **not** satellite imagery) from the live grid. Switching layers swaps the heatmap colour ramp, weight stops, radius and legend; the layer rail scrolls inside its own container so it never overlaps the bottom-right control dock.
+
+### 14.3 Windy-Style Particle Vector Flow
+`frontend/src/windField.js` implements an HTML5 Canvas particle engine:
+
+* The live grid supplies $u_{10} = -s\sin\theta$, $v_{10} = -s\cos\theta$ (with $\theta$ the direction the wind blows *from*), bilinearly interpolated onto a pixel-space lookup that is rebuilt whenever the view changes.
+* Speed $= \sqrt{u_{10}^2 + v_{10}^2}$; particles advect each frame, live for 50–100 frames and respawn, with fading trails (`destination-out` compositing).
+* Colour by speed: $<5$ m/s `#00f2fe`, $5$–$15$ m/s `#4facfe`, $15$–$25$ m/s `#f6d365`, $>25$ m/s `#ff0844`.
+* The landing-page map (`InteractiveMapSection.jsx`, Leaflet + Esri dark canvas) uses the same engine and can also switch to precipitation, temperature and |ECMWF − GFS| disagreement fields.
+* If the backend is unreachable the workspace falls back to a procedural decorative flow; it is not data-driven in that state.
+
+### 14.4 Blending Methodology Switcher
+The weight bars come from `GET /blending/weights`; the map field comes from `POST /forecast/run`.
+
+| Button | Pipeline method | Weights shown | Formulation |
+| :--- | :--- | :--- | :--- |
+| **Regime blend** | `regime_blender` | `neural_gating` | Regime-conditioned mixture of experts. On the synthetic Phase-4 evaluation set (rainfall, +24 h) it gives ≈ 73 % GraphCast v2, 20 % ECMWF HRES, 8 % GFS |
+| **Inverse variance** | `inverse_variance` | `inverse_variance` | $w_i = \dfrac{1/\sigma_i^2}{\sum_j 1/\sigma_j^2}$ |
+| **Equal weight** | `equal_weight` | uniform | $F = \frac{1}{N}\sum_i F_i$ |
+| **More… (modal)** | see below | see below | Advanced research blenders |
+
+The **Advanced blenders** dialog lists Spatial CNN Encoder, Spatio-Temporal ConvGRU, Constrained Simplex Ridge, Gaussian EMOS and Zero-Inflated Gamma Calibration. The forecast pipeline only implements equal-weight, inverse-variance, inverse-MAE and regime blending, so these five run as the **regime blender**; the telemetry pill reports the effective method (`ran as regime_blender`). Their weight bars use the closest fitted blender (`neural_gating`, `ridge_constrained` or `regime_inverse_variance`). Weights quoted above are properties of the synthetic evaluation data and are not live-skill estimates.
+
+### 14.5 Operational Menu Drawer
+The top-right **Menu** button opens a slide-over drawer:
+
+* **Basemap** – OpenStreetMap Light, Esri Dark Canvas or Esri Satellite Imagery (three raster layers toggled by visibility, so data layers persist).
+* **System health** – provider, freshness (`fresh` < 60 min, `stale` 60–180 min), data age, provider latency (ms), active grid nodes (e.g. 1,053) and engine version, read from `/api/live/status` and `/api/live/metadata`.
+* **Export** – downloads a JSON file with the pipeline forecast, live grid, blend weights, run settings and the selected location's live forecast. A second action opens the FastAPI Swagger docs.
+* **Display preferences** – city labels and hazard markers.
+
+The landing page and Overview tab also show a status badge (🟢 LIVE / FRESH, 🟡 STALE, 🔴 OFFLINE / CACHE FALLBACK) with a UTC timestamp and a 5-minute auto-refresh countdown.
+
+### 14.6 Limitations
+* The pipeline map layers use the synthetic forecast archive, whose lead times are $+6, +12, +24, +48$ h. Other timeline steps snap to the nearest of these; beyond $+48$ h the pill shows `archive max +48h`. The live grid, by contrast, is real Open-Meteo data for the requested hour.
+* The cycle picker does not select archived cycles – the archive has no per-cycle runs.
+* *Model weights* is a uniform tint (weights are global per run, not spatial) and *Run change* compares leads, not consecutive runs.
+* One pipeline run takes roughly 10–20 s; results are cached per variable / lead / method for the session.
+* The backend CORS allow-list covers frontend origins on ports 3000 and 5173.
